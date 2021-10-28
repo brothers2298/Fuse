@@ -255,9 +255,26 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
 	    struct fuse_file_info *fi)
 {
   func_log("write called\n");
+
   // Get full path, starts out every function
-  //char fpath[PATH_MAX];
-  //fullpath (path, fpath);
+  char fpath[PATH_MAX];
+  fullpath (path, fpath);
+
+  // Get size of file pre write
+  FILE * a;
+  a = fopen(fpath, "r");
+  int initial_size;
+  if (a == NULL) {
+     initial_size = 0;
+     return -3;
+  } else {
+     fseek(a, 0, SEEK_END);
+     initial_size = ftell(a);
+     rewind(a);
+     fclose(a); // dont need to close null file
+  }
+
+
 
   // ------------------------------------------------------------------
   // ------------------------------------------------------------------
@@ -379,12 +396,28 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
   
   // Write data to desired file, then close it.
   pwrite (fi->fh, buf, size, off);
-
-  //Keep the file descriptor of the file we're writing to.
-  u_int64_t file_descriptor = fi->fh;
-
-  // Close before opening other files
   close(fi->fh);
+
+  // Get size of file pre write
+  FILE * b;
+  b = fopen(fpath, "r");
+  int new_size;
+  if (b == NULL) {
+     initial_size = 0;
+     return -3;
+  } else {
+     rewind(b);
+     fseek(b, 0, SEEK_END);
+     initial_size = ftell(b);
+     rewind(b);
+     fclose(b); // dont need to close null file
+  }
+
+  char size_path[PATH_MAX];
+  fullpath("/size", size_path);
+  FILE * size_file = fopen(size_path, "a+");
+  fprintf(size_file, "Orig=%d, New=%d, Dif=%d, Write size=%s\n", initial_size, new_size, new_size - initial_size, size);
+  fclose(size_file);
 
   //Return size as originally.
   return size;
