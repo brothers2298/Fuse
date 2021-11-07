@@ -35,7 +35,7 @@ char base[PATH_MAX];
 
 // Appears to be linking NetApp FUSE functions with standard FUSE interface.
 struct fuse_operations ntapfuse_ops = {
-  .getattr = ntapfuse_getattr,
+  .getattr = ntapattr,
   .readlink = ntapfuse_readlink,
   .mknod = ntapfuse_mknod,
   .mkdir = ntapfuse_mkdir,
@@ -55,7 +55,7 @@ struct fuse_operations ntapfuse_ops = {
   .release = ntapfuse_release,
   .fsync = ntapfuse_fsync,
   .setxattr = ntapfuse_setxattr,
-  .getxattr = ntapfuse_getxattr,
+  .getxattr = ntapxattr,
   .listxattr = ntapfuse_listxattr,
   .removexattr = ntapfuse_removexattr,
   .opendir = ntapfuse_opendir,

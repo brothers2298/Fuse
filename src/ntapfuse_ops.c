@@ -51,7 +51,7 @@ void
 fullpath (const char *path, char *buf)
 {
 
-  char *basedir = (char *) fuse_get_context ()->private_data;
+  char *basedir = (char *) _context ()->private_data;
 
   strcpy (buf, basedir);
   strcat (buf, path);
@@ -59,7 +59,7 @@ fullpath (const char *path, char *buf)
 
 // Function to make log writes easier
 void func_log(const char * message) {
-  int write_all_functions = 0;
+  int write_all_functions = 1;
 
   if (!write_all_functions) {
 	return;
@@ -89,7 +89,7 @@ void user_log(const char * message) {
    mirrored path. */
 
 int
-ntapfuse_getattr (const char *path, struct stat *buf)
+ntapattr (const char *path, struct stat *buf)
 {
   func_log("getattr called\n");
 
@@ -275,7 +275,7 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
   fullpath("/temp", temp_path);
   FILE * temp = fopen(temp_path, "w+");
 
-  uid_t userID = fuse_get_context()->uid;
+  uid_t userID = _context()->uid;
   int uid, used, max;   // Variables that are passed by reference into sscanf
   char line[80];        // char * that stores the current line being read
   int user_found = 0;   // Boolean for determining if we need to create a user
@@ -432,7 +432,7 @@ ntapfuse_setxattr (const char *path, const char *name, const char *value,
 }
 
 int
-ntapfuse_getxattr (const char *path, const char *name, char *value, size_t size)
+ntapxattr (const char *path, const char *name, char *value, size_t size)
 {
   func_log("getxattr called\n");
   char fpath[PATH_MAX];
@@ -519,5 +519,5 @@ ntapfuse_access (const char *path, int mode)
 void *
 ntapfuse_init (struct fuse_conn_info *conn)
 {
-  return (fuse_get_context())->private_data;
+  return (_context())->private_data;
 }
