@@ -619,8 +619,6 @@ sudo -u testuser ./test6_testuser.sh
 cd ..
 cd mp_test
 
-cd aiphngbspio
-
 #################################################### TEST THE OTHER FILE ######################################################
 
 #Get the expected size of the testuser's file

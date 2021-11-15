@@ -212,7 +212,20 @@ ntapfuse_mknod (const char *path, mode_t mode, dev_t dev)
   char fpath[PATH_MAX];
   fullpath (path, fpath);
 
-  return mknod (fpath, mode, dev) ? -errno : 0;
+  int result = mknod (fpath, mode, dev) ? -errno : 0;
+
+  FILE *file = fopen(fpath, "r+");
+  if (file < 0)
+    return -errno;
+  fclose(file);
+
+  
+  uid_t userID = fuse_get_context()->uid;
+  gid_t groupID = fuse_get_context()->gid;
+
+  chown(fpath, userID, groupID);
+  
+  return result;
 }
 
 int
@@ -294,6 +307,9 @@ ntapfuse_chmod (const char *path, mode_t mode)
 int
 ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
 {
+  char msg[50];
+  snprintf(msg, sizeof(msg), "User %d", uid);
+  func_log(msg);
   func_log("chown called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
