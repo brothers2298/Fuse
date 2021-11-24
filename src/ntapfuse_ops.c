@@ -84,6 +84,113 @@ void user_log(const char * message) {
   fclose(log);
 }
 
+//Function that creates a table of file paths, and user ids
+//check owner of a given file
+int owner_db_query(const char *path){
+  char usrdb_path[PATH_MAX];
+  fullpath("/user db", usrdb_path);
+  FILE * lp = fopen(usrdb_path, "a+");
+  
+
+  int uid;   
+  int size = PATH_MAX + 80;
+  char line[size];        
+  char db_path[PATH_MAX];
+  int user_found = 0;   
+
+  while (fgets(line, size, lp) != NULL) { 
+    if (sscanf(line, "%d\t%s\n", &uid, &db_path) != 2) { /* TODO: Error Handling */ }
+    if(strcmp(path, db_path) == 0) {
+      return uid;
+    }
+  }
+  //end of file reached, file not found
+  return -1;
+
+}
+
+//update owner of a given file
+int owner_db_update(const char *path, uid_t usr){
+  char usrdb_path[PATH_MAX];
+  fullpath("/user_db", usrdb_path);
+  FILE * lp = fopen(usrdb_path, "a+");
+
+  // Create a temp file to write to
+  char temp_path[PATH_MAX];
+  fullpath("/temp", temp_path);
+  FILE * temp = fopen(temp_path, "w+");
+
+  int uid;   
+  char *db_path = malloc(PATH_MAX + 1);
+  int size = PATH_MAX + 80;
+  char line[size];        
+  int file_found = 0;   
+
+  while (fgets(line, size, lp) != NULL) { 
+    func_log("HERE\n");
+
+    if(sscanf(line, "%d %[^\t\n]", &uid, db_path) != 2) { /* TODO: Error Handling */ }
+
+    char log_path[PATH_MAX];
+    fullpath("/log", log_path);
+    FILE * log = fopen(log_path, "a+");
+    fprintf(log, "DB_Path: %s Path: %s\n", db_path, path);
+    
+
+    if(strncmp(path, db_path, PATH_MAX) == 0 && usr == uid) {
+      fclose(lp);
+      fclose(temp);
+      remove(temp_path);
+      return -1;
+    }
+
+    if(file_found != 0 || (strncmp(path, db_path, PATH_MAX) != 0)) {
+      fputs(line, temp);
+      continue;
+    }
+
+    fprintf(temp, "%d\t%s\n", usr, path);
+    file_found = 1;
+
+    
+    fprintf(log, "User %d now own %s\n", usr, path);
+    fclose(log);
+  }
+
+  if(!file_found) {
+
+    char log_path[PATH_MAX];
+    fullpath("/log", log_path);
+    FILE *log = fopen(log_path, "a+");
+
+    fprintf(temp, "%d\t%s\n", usr, path);
+
+    fprintf(log, "New Path: %s", path);
+    fclose(log);
+  }
+
+  fclose(lp);
+  fclose(temp);
+
+  //Swap files
+  char swap_path[PATH_MAX];
+  fullpath("/swap", swap_path); // We just need a path to swap, no file necessary here
+
+  rename(usrdb_path, swap_path); // log -> swap (keep ref to delete later)
+  rename(temp_path, usrdb_path); // temp -> log (what we wrote to is now the real log file)
+  remove(swap_path);	       // delete swap (original log)
+
+  //end of file reached, file not found
+  return 0;
+
+}
+
+//append a new file
+int owner_db_newfile(){
+
+}
+
+
 /*
 helper function for db writes
 takes the userID of the file owner, the change in file size in off_t
@@ -119,35 +226,42 @@ db_update(uid_t userID, off_t size)
 		  continue;
 	  }
 		
+    if (used + size > max) used = max;
+    else if (used + size < 0) used = 0;
+    else used += size;
+
+
 	  // Check and enforce space guidelines
-	  if (used + size > max) { 
+	  /*
+    if (used + size > max) { 
   		fclose(lp);        // Close orig file
   		fclose(temp);      // Close temp file
-		remove(temp_path); // Delete temp file
-		return -1;         // Return error TODO FIND CORRECT CODE FOR NOT ENOUGH SPACE
+      remove(temp_path); // Delete temp file
+      return -1;         // Return error TODO FIND CORRECT CODE FOR NOT ENOUGH SPACE
 	  }
-
 	  // Update size
-	  used += size;
+	   used += size;
+    */
 
 	  // Write updated data to temp file
 	  fprintf(temp, "%d\t%d\t%d\n", uid, used, max);
 	  user_found = 1;
 
-	// Add database operation to log
-	char log_path[PATH_MAX];
-	fullpath("/log", log_path);
-	FILE * log = fopen(log_path, "a+");
-	fprintf(log, "User %d wrote %d bytes and now has %d \n", uid, size, used);
-	fclose(log);
+    // Add database operation to log
+    char log_path[PATH_MAX];
+    fullpath("/log", log_path);
+    FILE * log = fopen(log_path, "a+");
+    fprintf(log, "User %d wrote %d bytes and now has %d \n", uid, size, used);
+    fclose(log);
 
   }
-    if (!user_found) {
-	char log_path[PATH_MAX];
-	fullpath("/log", log_path);
-	FILE * log = fopen(log_path, "a+");
+  
+  if (!user_found) {
+    char log_path[PATH_MAX];
+    fullpath("/log", log_path);
+    FILE * log = fopen(log_path, "a+");
 
-	fprintf(log, "Entry for user %d added to database", userID);
+    fprintf(log, "Entry for user %d added to database", userID);
 
 	  // Ensure user's first write will not be over max size
 	  if (size > 4096) { // TODO CHANGE TO A DEFAULT QUOTA VARIABLE
@@ -156,14 +270,14 @@ db_update(uid_t userID, off_t size)
 
   		fclose(lp);        // Close orig file
   		fclose(temp);      // Close temp file
-		remove(temp_path); // Delete temp file
-		fclose(log);
-		return -1;         // Return error TODO FIND CORRECT CODE FOR NOT ENOUGH SPACE
+      remove(temp_path); // Delete temp file
+      fclose(log);
+      return -1;         // Return error TODO FIND CORRECT CODE FOR NOT ENOUGH SPACE
 	  }
 	  fprintf(temp, "%d\t%d\t%d\n", userID, size, 4096);
 
-	fprintf(log, "User %d wrote %d bytes", userID, size);
-	fclose(log);
+    fprintf(log, "User %d wrote %d bytes", userID, size);
+    fclose(log);
   }
   // Close files
   fclose(lp);
@@ -209,9 +323,13 @@ int
 ntapfuse_mknod (const char *path, mode_t mode, dev_t dev)
 {
   func_log("mknod called\n");
+
+  uid_t usr = fuse_get_context()->uid;
+  owner_db_update(path, usr);
+
+
   char fpath[PATH_MAX];
   fullpath (path, fpath);
-
   return mknod (fpath, mode, dev) ? -errno : 0;
 }
 
@@ -225,12 +343,18 @@ ntapfuse_mkdir (const char *path, mode_t mode)
   return mkdir (fpath, mode | S_IFDIR) ? -errno : 0;
 }
 
+//TODO: add checks for proper deletion of files!
 int
 ntapfuse_unlink (const char *path)
 {
   func_log("unlink called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+  //get the stat block of the file
+  struct stat file_stat;
+  stat(fpath,  &file_stat);
+  //update the db with the inverse of the file size
+  if(db_update(file_stat.st_uid, -file_stat.st_size)!=0 ) return -1;
 
   return unlink (fpath) ? -errno : 0;
 }
@@ -241,7 +365,13 @@ ntapfuse_rmdir (const char *path)
   func_log("rmdir called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
-
+  //TODO: add checks for path not existing, file not being empty
+  
+  //get file's stat block
+  struct stat dir_stat;
+  stat(fpath,  &dir_stat);
+  //update directory
+  if(db_update(dir_stat.st_uid, -4)!=0 ) return -1;
   return rmdir (fpath) ? -errno : 0;
 }
 
@@ -295,16 +425,26 @@ int
 ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
 {
   func_log("chown called\n");
+  /*
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+  */
 
-  return chown (fpath, uid, gid) ? -errno : 0;
+  uid_t usr = uid;
+  owner_db_update(path, usr);
+
+  return 0;
+  // chown (fpath, uid, gid) ? -errno : 0;
 }
 
 //truncate reduces or expands a file to length # of bytes.
 int
 ntapfuse_truncate (const char *path, off_t length)
 {
+  if (length < 0) {
+    func_log("truncate called error: length < 0\n");
+    return -1;
+  }
   func_log("truncate called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
@@ -313,9 +453,11 @@ ntapfuse_truncate (const char *path, off_t length)
   stat(fpath,  &file_stat); // TODO ERROR CHECK
   
   off_t change;
-  if(file_stat.st_size > length)change= length - file_stat.st_size;
-  if(file_stat.st_size < length)change= file_stat.st_size -length;
-  if(file_stat.st_size = length)change= 0;
+  change = length - file_stat.st_size;
+  //if(file_stat.st_size > length)change= length - file_stat.st_size;
+  //if(file_stat.st_size < length)change= file_stat.st_size -length;
+  //if(file_stat.st_size == length)change= 0;
+
   //callstat db helper method, fails on return
   if(db_update(file_stat.st_uid, change)!=0 ) return -1;
 
