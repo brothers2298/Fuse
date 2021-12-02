@@ -98,7 +98,7 @@ fi
 
 numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} "
 
 dbfile="$(cat db)"
 
@@ -120,7 +120,7 @@ truncate -s $[numbers_size+10] numbers
 
 numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} "
 
 dbfile="$(cat db)"
 
@@ -142,7 +142,7 @@ truncate -s $[numbers_size-20] numbers
 
 numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} "
 
 dbfile="$(cat db)"
 
@@ -163,7 +163,7 @@ truncate -s $[numbers_size+1024] numbers
 
 numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} "
 
 dbfile="$(cat db)"
 
@@ -185,7 +185,7 @@ truncate -s $[numbers_size-2048] numbers
 
 numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} "
 
 dbfile="$(cat db)"
 
