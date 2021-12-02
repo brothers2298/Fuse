@@ -21,8 +21,8 @@
 #define _XOPEN_SOURCE 500
 
 #include "ntapfuse_ops.h"
-#include <stdio.h>
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <errno.h>
@@ -42,8 +42,6 @@
 #include <time.h>
 
 
-
-
 /**
  * Appends the path of the root filesystem to the given path, returning
  * the result in buf.
@@ -56,6 +54,55 @@ fullpath (const char *path, char *buf)
 
   strcpy (buf, basedir);
   strcat (buf, path);
+}
+
+
+int get_lockfile(int file_descriptor) {
+
+  char lock_path[PATH_MAX];
+  fullpath("/lock", lock_path);
+
+  int count = 1;
+  int lock = 0;
+
+  // Determine if additional sleep should be done
+  // based on environment variables
+  int sleep_time = 0;
+  const char * st = getenv("SLEEP_TIME");
+  if (st != NULL) { 
+	  sleep_time = atoi(st);
+  }
+  sleep(sleep_time);
+
+  while (1) {
+
+	  file_descriptor = open(lock_path, O_RDWR | O_CREAT, 0666);
+	  lock = flock(file_descriptor, LOCK_EX | LOCK_NB);
+
+	  // If return value is 0, we have the lockfile and can continue.
+	  if (lock == 0) { return 0; }
+
+	  // Sleep for doubling lengths (1ms, 2ms, 4ms, 8ms, 16ms, etc);
+	  usleep(count * 1000);
+
+	  // Failsafe to avoid infinite looping
+	  count *= 2;
+	  if (count > 50000) { return -1; }
+  }
+
+}
+
+void return_lockfile(int file_descriptor) {
+
+  char lock_path[PATH_MAX];
+  fullpath("/lock", lock_path);
+
+  // Close the file
+  close(file_descriptor);
+
+  // Delete the lock file, as other threads check whether or not the file exists
+  remove(lock_path);
+
 }
 
 // Function to make log writes easier
@@ -187,10 +234,16 @@ db_update(uid_t userID, off_t size)
 int
 ntapfuse_getattr (const char *path, struct stat *buf)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("getattr called\n");
 
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+
+  return_lockfile(&lfd);
 
   return lstat (fpath, buf) ? -errno : 0;
 }
@@ -198,9 +251,15 @@ ntapfuse_getattr (const char *path, struct stat *buf)
 int
 ntapfuse_readlink (const char *path, char *target, size_t size)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("readlink called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+
+  return_lockfile(&lfd);
 
   return readlink (fpath, target, size) < 0 ? -errno : 0;
 }
@@ -248,9 +307,15 @@ ntapfuse_rmdir (const char *path)
 int
 ntapfuse_symlink (const char *path, const char *link)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("symlink called\n");
   char flink[PATH_MAX];
   fullpath (link, flink);
+
+  return_lockfile(&lfd);
 
   return symlink (path, flink) ? -errno : 0;
 }
@@ -258,6 +323,10 @@ ntapfuse_symlink (const char *path, const char *link)
 int
 ntapfuse_rename (const char *src, const char *dst)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("rename called\n");
   char fsrc[PATH_MAX];
   fullpath (src, fsrc);
@@ -265,12 +334,18 @@ ntapfuse_rename (const char *src, const char *dst)
   char fdst[PATH_MAX];
   fullpath (dst, fdst);
 
+  return_lockfile(&lfd);
+
   return rename (fsrc, fdst) ? -errno : 0;
 }
 
 int
 ntapfuse_link (const char *src, const char *dst)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("link called\n");
   char fsrc[PATH_MAX];
   fullpath (src, fsrc);
@@ -278,15 +353,23 @@ ntapfuse_link (const char *src, const char *dst)
   char fdst[PATH_MAX];
   fullpath (dst, fdst);
 
+  return_lockfile(&lfd);
+
   return link (fsrc, fdst) ? -errno : 0;
 }
 
 int
 ntapfuse_chmod (const char *path, mode_t mode)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("chmod called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+
+  return_lockfile(&lfd);
 
   return chmod (fpath, mode) ? -errno : 0;
 }
@@ -325,9 +408,15 @@ ntapfuse_truncate (const char *path, off_t length)
 int
 ntapfuse_utime (const char *path, struct utimbuf *buf)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("utime called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+
+  return_lockfile(&lfd);
 
   return utime (fpath, buf) ? -errno : 0;
 }
@@ -335,6 +424,10 @@ ntapfuse_utime (const char *path, struct utimbuf *buf)
 int
 ntapfuse_open (const char *path, struct fuse_file_info *fi)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("open called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
@@ -345,6 +438,8 @@ ntapfuse_open (const char *path, struct fuse_file_info *fi)
 
   fi->fh = fh;
 
+  return_lockfile(&lfd);
+
   return 0;
 }
 
@@ -352,7 +447,14 @@ int
 ntapfuse_read (const char *path, char *buf, size_t size, off_t off,
 	   struct fuse_file_info *fi)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("read called\n");
+
+  return_lockfile(&lfd);
+
   return pread (fi->fh, buf, size, off) < 0 ? -errno : size;
 }
 
@@ -360,6 +462,10 @@ int
 ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
 	    struct fuse_file_info *fi)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("write called\n");
   // Get full path, starts out every function
   //char fpath[PATH_MAX];
@@ -370,26 +476,6 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
   // STEP 1: OPEN LOG FILE AND CHECK IF USER HAS ENOUGH AVAILABLE SPACE
   // ------------------------------------------------------------------
   // ------------------------------------------------------------------
-
-  char lock_path[PATH_MAX];
-  fullpath("/lock", lock_path);
-
-  int count = 1;
-  int lock = 0;
-  int lfd = 0;
-  while (1) {
-
-	  lfd = open(lock_path, O_RDWR | O_CREAT, 0666);
-	  lock = flock(lfd, LOCK_EX | LOCK_NB);
-	  if (lock == 0) {
-		break;
-	  }
-	  sleep(1);
-	  count += 1;
-	  if (count > 10) {
-		  return -1;
-	  }
-  }
 
   // Open db file with c standard library
   char db_path[PATH_MAX];
@@ -513,8 +599,11 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
   // Close before opening other files
   close(fi->fh);
 
-  close(lfd);
-  remove(lock_path);
+
+
+  return_lockfile(&lfd);
+
+
 
   //Return size as originally.
   return size;
@@ -536,7 +625,14 @@ ntapfuse_statfs (const char *path, struct statvfs *buf)
 int
 ntapfuse_release (const char *path, struct fuse_file_info *fi)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("release called\n");
+
+  return_lockfile(&lfd);
+
   return close (fi->fh) ? -errno : 0;
 }
 
@@ -554,9 +650,15 @@ int
 ntapfuse_setxattr (const char *path, const char *name, const char *value,
 	       size_t size, int flags)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("setxattr called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+
+  return_lockfile(&lfd);
 
   return lsetxattr (fpath, name, value, size, flags) ? -errno : 0;
 }
@@ -564,11 +666,17 @@ ntapfuse_setxattr (const char *path, const char *name, const char *value,
 int
 ntapfuse_getxattr (const char *path, const char *name, char *value, size_t size)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("getxattr called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
 
   ssize_t s = lgetxattr (fpath, name, value, size);
+
+  return_lockfile(&lfd);
   return s < 0 ? -errno : s;
 }
 
@@ -585,9 +693,15 @@ ntapfuse_listxattr (const char *path, char *list, size_t size)
 int
 ntapfuse_removexattr (const char *path, const char *name)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("removexattr called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+
+  return_lockfile(&lfd);
 
   return lremovexattr (fpath, name) ? -errno : 0;
 }
@@ -595,6 +709,10 @@ ntapfuse_removexattr (const char *path, const char *name)
 int
 ntapfuse_opendir (const char *path, struct fuse_file_info *fi)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("opendir called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
@@ -605,6 +723,8 @@ ntapfuse_opendir (const char *path, struct fuse_file_info *fi)
 
   fi->fh = (uint64_t) dir;
 
+  return_lockfile(&lfd);
+
   return 0;
 }
 
@@ -612,6 +732,10 @@ int
 ntapfuse_readdir (const char *path, void *buf, fuse_fill_dir_t fill, off_t off,
 	      struct fuse_file_info *fi)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("readdir called\n");
   struct dirent *de = NULL;
 
@@ -626,22 +750,38 @@ ntapfuse_readdir (const char *path, void *buf, fuse_fill_dir_t fill, off_t off,
 	break;
     }
 
+
+  return_lockfile(&lfd);
+
   return 0;
 }
 
 int
 ntapfuse_releasedir (const char *path, struct fuse_file_info *fi)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("releasedir called\n");
+
+  return_lockfile(&lfd);
+
   return closedir ((DIR *) fi->fh) ? -errno : 0;
 }
 
 int
 ntapfuse_access (const char *path, int mode)
 {
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("access called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+
+  return_lockfile(&lfd);
 
   return access (fpath, mode) ? -errno : 0;
 }
