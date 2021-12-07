@@ -136,10 +136,6 @@ void user_log(const char * message) {
 //update owner of a given file
 int owner_db_update(const char *path, uid_t usr, int flag){
   
-  // Get lockfile for atomic access
-  int lfd = 0; // Lock file descriptor
-  // Will return -1 on failure, otherwise continue
-  if (get_lockfile(&lfd) == -1) { return -1; }
 
   /*-----------------------*/
   /*flag = 1, remove file  */
@@ -218,7 +214,6 @@ int owner_db_update(const char *path, uid_t usr, int flag){
   rename(temp_path, usrdb_path); // temp -> log (what we wrote to is now the real log file)
   remove(swap_path);	       // delete swap (original log)
 
-  return_lockfile(&lfd);
   
   //end of file reached, file not found
   return 0;
@@ -390,6 +385,11 @@ ntapfuse_readlink (const char *path, char *target, size_t size)
 int
 ntapfuse_mknod (const char *path, mode_t mode, dev_t dev)
 {
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("mknod called\n");
 
   uid_t usr = fuse_get_context()->uid;
@@ -398,12 +398,20 @@ ntapfuse_mknod (const char *path, mode_t mode, dev_t dev)
 
   char fpath[PATH_MAX];
   fullpath (path, fpath);
+
+  return_lockfile(&lfd);
+
   return mknod (fpath, mode, dev) ? -errno : 0;
 }
 
 int
 ntapfuse_mkdir (const char *path, mode_t mode)
 {
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("mkdir called\n");
 
   uid_t user = fuse_get_context()->uid;
@@ -423,6 +431,9 @@ ntapfuse_mkdir (const char *path, mode_t mode)
   stat(fpath, &file_stat);
 
   db_update(user, file_stat.st_size);
+
+  return_lockfile(&lfd);
+
   return ret;
 }
 
@@ -430,6 +441,11 @@ ntapfuse_mkdir (const char *path, mode_t mode)
 int
 ntapfuse_unlink (const char *path)
 {
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("unlink called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
@@ -445,12 +461,19 @@ ntapfuse_unlink (const char *path)
   owner_db_update(path, uid, 1);
   if(db_update(uid, -file_stat.st_size) != 0 ) return -1;
 
+  return_lockfile(&lfd);
+
   return unlink (fpath) ? -errno : 0;
 }
 
 int
 ntapfuse_rmdir (const char *path)
 {
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("rmdir called\n");
   char fpath[PATH_MAX];
   fullpath (path, fpath);
@@ -466,6 +489,8 @@ ntapfuse_rmdir (const char *path)
   //update directory
   if(db_update(user, -dir_stat.st_size) !=0 ) return -1;
   owner_db_update(path, user, 1);
+
+  return_lockfile(&lfd);
 
   return rmdir (fpath) ? -errno : 0;
 }
@@ -483,6 +508,11 @@ ntapfuse_symlink (const char *path, const char *link)
 int
 ntapfuse_rename (const char *src, const char *dst)
 {
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("rename called\n");
 
   uid_t user = fuse_get_context()->uid;
@@ -495,6 +525,8 @@ ntapfuse_rename (const char *src, const char *dst)
   char fdst[PATH_MAX];
   fullpath (dst, fdst);
   owner_db_update(dst, user, 0);
+
+  return_lockfile(&lfd);
 
   return rename (fsrc, fdst) ? -errno : 0;
 
@@ -526,6 +558,11 @@ ntapfuse_chmod (const char *path, mode_t mode)
 int
 ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
 {
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("chown called\n");
 
   char fpath[PATH_MAX];
@@ -542,6 +579,7 @@ ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
   db_update(new_user, file_stat.st_size);
 
   // chown (fpath, uid, gid) ? -errno : 0;
+  return_lockfile(&lfd);
 
   return 0;
 }
@@ -550,6 +588,11 @@ ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
 int
 ntapfuse_truncate (const char *path, off_t length)
 {
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   if (length < 0) {
     func_log("truncate called error: length < 0\n");
     return -1;
@@ -569,6 +612,8 @@ ntapfuse_truncate (const char *path, off_t length)
 
   //callstat db helper method, fails on return
   if(db_update(file_stat.st_uid, change)!=0 ) return -1;
+
+  return_lockfile(&lfd);
 
   return truncate (fpath, length) ? -errno : 0;
 }
@@ -611,6 +656,11 @@ int
 ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
 	    struct fuse_file_info *fi)
 {
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
+
   func_log("write called\n");
   // Get full path, starts out every function
   //char fpath[PATH_MAX];
@@ -621,26 +671,6 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
   // STEP 1: OPEN LOG FILE AND CHECK IF USER HAS ENOUGH AVAILABLE SPACE
   // ------------------------------------------------------------------
   // ------------------------------------------------------------------
-
-  char lock_path[PATH_MAX];
-  fullpath("/lock", lock_path);
-
-  int count = 1;
-  int lock = 0;
-  int lfd = 0;
-  while (1) {
-
-	  lfd = open(lock_path, O_RDWR | O_CREAT, 0666);
-	  lock = flock(lfd, LOCK_EX | LOCK_NB);
-	  if (lock == 0) {
-		break;
-	  }
-	  sleep(1);
-	  count += 1;
-	  if (count > 10) {
-		  return -1;
-	  }
-  }
 
   // Open db file with c standard library
   char db_path[PATH_MAX];
@@ -764,8 +794,7 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
   // Close before opening other files
   close(fi->fh);
 
-  close(lfd);
-  remove(lock_path);
+  return_lockfile(&lfd);
 
   //Return size as originally.
   return size;

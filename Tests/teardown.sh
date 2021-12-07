@@ -14,6 +14,8 @@ sudo umount mp_test/
 sudo pkill -KILL -u testuser
 sudo userdel -r testuser
 
+export SLEEP_TIME=0
+
 # Remove test directories
 rm -rf bd_test/
 rm -rf mp_test/
