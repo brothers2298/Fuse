@@ -59,6 +59,54 @@ fullpath (const char *path, char *buf)
   strcat (buf, path);
 }
 
+int get_lockfile(int file_descriptor) {
+
+  char lock_path[PATH_MAX];
+  fullpath("/lock", lock_path);
+
+  int count = 1;
+  int lock = 0;
+
+  // Determine if additional sleep should be done
+  // based on environment variables
+  int sleep_time = 0;
+  const char * st = getenv("SLEEP_TIME");
+  if (st != NULL) { 
+	  sleep_time = atoi(st);
+  }
+  sleep(sleep_time);
+
+  while (1) {
+
+	  file_descriptor = open(lock_path, O_RDWR | O_CREAT, 0666);
+	  lock = flock(file_descriptor, LOCK_EX | LOCK_NB);
+
+	  // If return value is 0, we have the lockfile and can continue.
+	  if (lock == 0) { return 0; }
+
+	  // Sleep for doubling lengths (1ms, 2ms, 4ms, 8ms, 16ms, etc);
+	  usleep(count * 1000);
+
+	  // Failsafe to avoid infinite looping
+	  count *= 2;
+	  if (count > 50000) { return -1; }
+  }
+
+}
+
+void return_lockfile(int file_descriptor) {
+
+  char lock_path[PATH_MAX];
+  fullpath("/lock", lock_path);
+
+  // Close the file
+  close(file_descriptor);
+
+  // Delete the lock file, as other threads check whether or not the file exists
+  remove(lock_path);
+
+}
+
 // Function to make log writes easier
 void func_log(const char * message) {
   int write_all_functions = 1;
@@ -87,6 +135,11 @@ void user_log(const char * message) {
 
 //update owner of a given file
 int owner_db_update(const char *path, uid_t usr, int flag){
+  
+  // Get lockfile for atomic access
+  int lfd = 0; // Lock file descriptor
+  // Will return -1 on failure, otherwise continue
+  if (get_lockfile(&lfd) == -1) { return -1; }
 
   /*-----------------------*/
   /*flag = 1, remove file  */
@@ -165,6 +218,8 @@ int owner_db_update(const char *path, uid_t usr, int flag){
   rename(temp_path, usrdb_path); // temp -> log (what we wrote to is now the real log file)
   remove(swap_path);	       // delete swap (original log)
 
+  return_lockfile(&lfd);
+  
   //end of file reached, file not found
   return 0;
 
