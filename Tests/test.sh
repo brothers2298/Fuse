@@ -21,6 +21,9 @@ sudo make install
 # Enter mountpoint directory
 #cd mp_test/
 
+# Set up environment variable for initial tests
+export SLEEP_TIME=0
+
 # Notify user
 echo
 echo
@@ -104,7 +107,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} 49152"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -162,7 +165,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} 49152"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -186,7 +189,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} 49152"
 dbfile="$(cat db)"
 #cat db
 
@@ -246,7 +249,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} 49152"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -300,7 +303,7 @@ fi
 
 updated_size=$(($letters_size + $numbers_size))
 
-test_str="${letters_user} ${updated_size} 4096"
+test_str="${letters_user} ${updated_size} 49152"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -363,7 +366,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} 49152"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -380,7 +383,7 @@ fi
 
 rm numbers
 
-numbers_test_str="${numbers_user} 0 4096"
+numbers_test_str="${numbers_user} 0 49152"
 dbfile="$(cat db)"
 
 #echo "$numbers_test_str"
@@ -442,7 +445,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} 49152"
 dbfile="$(cat db)"
 
 #echo "$numbers_test_str"
@@ -499,7 +502,7 @@ fi
 
 updated_size=$(($letters_size + $numbers_size))
 
-test_str="${letters_user} ${updated_size} 4096"
+test_str="${letters_user} ${updated_size} 49152"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -521,7 +524,7 @@ rm numbers
 
 updated_size=$(($updated_size - $numbers_size))
 
-test_str="${letters_user} ${updated_size} 4096"
+test_str="${letters_user} ${updated_size} 49152"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -583,7 +586,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 4096"
+numbers_test_str="${numbers_user} ${numbers_size} 49152"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -619,7 +622,7 @@ sudo -u testuser ./test6_testuser.sh
 cd ..
 cd mp_test
 
-cd aiphngbspio
+#cd aiphngbspio
 
 #################################################### TEST THE OTHER FILE ######################################################
 
@@ -629,12 +632,93 @@ hello_testuser_size=$(stat --format=%s "hello_testuser")
 #Get the user of the testuser's file
 hello_testuser_user=$(stat -c '%u' "hello_testuser")
 
-test6_str="${numbers_test_str} ${hello_testuser_user} ${hello_testuser_size} 4096"
+test6_str="${numbers_test_str} ${hello_testuser_user} ${hello_testuser_size} 49152"
 echo $test6_str
 
 rm db
 rm numbers
 echo ""
+
+
+# ------------------- CONCURRENCY TESTS------------------------
+
+cd ..
+
+# Close program, must be restarted to update environment var
+sudo umount mp_test/
+
+# Set up environment variable for initial tests
+export SLEEP_TIME=1
+
+ntapfuse mount bd_test/ mp_test/ -o allow_other
+
+repo_root=$(pwd)
+
+cd mp_test/
+
+
+#########################################################################
+### TEST C1 - CREATE FILE USING ECHO - NO DATABSE PRESENT ################
+#########################################################################
+
+echo ""
+echo "----- BEGINNING CONCURRENCY TESTS, THESE ARE SLOWER DUE TO ADDED DELAY -----"
+echo ""
+
+echo ""
+echo "########################################################################
+### TEST C1 - ONE USER WRITING TO TWO DIFFERENT FILES AT SAME TIME #####
+########################################################################"
+
+#echo "1:    Creating numbers file"
+
+# Run first concurrency test
+python3 ${repo_root}/Tests/c1.py
+
+
+
+file1_expected="123456789"
+file1="$(cat file1)"
+file2_expected="987654321"
+file2="$(cat file2)"
+
+db_expected="1000 20 49152"
+db=$(cat db)
+
+# Check db
+expected=$(echo $db_expected)
+actual=$(echo $db)
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "DB PASS"
+else
+    echo $expected
+    echo $actual
+fi
+
+# Check file 1
+expected=$(echo $file1_expected)
+actual=$(echo $file1)
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "F1 PASS"
+else
+    echo "FAIL"
+fi
+
+# Check file 2
+expected=$(echo $file2_expected)
+actual=$(echo $file2)
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "F2 PASS"
+else
+    echo "FAIL"
+fi
+
+
+rm file1
+rm file2
 
 # ------------------- TESTS END HERE ------------------------
 
@@ -658,6 +742,9 @@ sudo umount mp_test/
 # Remove test directories
 rm -rf bd_test/
 rm -rf mp_test/
+
+# Set up environment variable for initial tests
+export SLEEP_TIME=0
 
 # Remove testusers
 sudo pkill -KILL -u testuser
