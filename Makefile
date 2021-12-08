@@ -229,12 +229,12 @@ distuninstallcheck_listfiles = find . -type f -print
 am__distuninstallcheck_listfiles = $(distuninstallcheck_listfiles) \
   | sed 's|^\./|$(prefix)/|' | grep -v '$(infodir)/dir$$'
 distcleancheck_listfiles = find . -type f -print
-ACLOCAL = ${SHELL} /home/connor/Documents/connor/missing aclocal-1.16
+ACLOCAL = ${SHELL} /home/austin/new/Fuse/missing aclocal-1.16
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 1
-AUTOCONF = ${SHELL} /home/connor/Documents/connor/missing autoconf
-AUTOHEADER = ${SHELL} /home/connor/Documents/connor/missing autoheader
-AUTOMAKE = ${SHELL} /home/connor/Documents/connor/missing automake-1.16
+AUTOCONF = ${SHELL} /home/austin/new/Fuse/missing autoconf
+AUTOHEADER = ${SHELL} /home/austin/new/Fuse/missing autoheader
+AUTOMAKE = ${SHELL} /home/austin/new/Fuse/missing automake-1.16
 AWK = mawk
 CC = gcc
 CCDEPMODE = depmode=gcc3
@@ -259,7 +259,7 @@ LDFLAGS =
 LIBOBJS = 
 LIBS = -lfuse 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/connor/Documents/connor/missing makeinfo
+MAKEINFO = ${SHELL} /home/austin/new/Fuse/missing makeinfo
 MKDIR_P = /usr/bin/mkdir -p
 OBJEXT = o
 PACKAGE = ntapfuse
@@ -281,6 +281,7 @@ abs_builddir = /home/connor/Documents/connor
 abs_srcdir = /home/connor/Documents/connor
 abs_top_builddir = /home/connor/Documents/connor
 abs_top_srcdir = /home/connor/Documents/connor
+
 ac_ct_CC = gcc
 am__include = include
 am__leading_dot = .
