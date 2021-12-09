@@ -279,9 +279,11 @@ ntapfuse_mknod (const char *path, mode_t mode, dev_t dev)
   int ret = mknod (fpath, mode, dev) ? -errno : 0;
   if (ret != 0)
   {
+    return_lockfile(&lfd);
     return ret;
   }
   return_lockfile(&lfd);
+
   return chown(fpath, user, group) ? -errno : 0;
 }
 
@@ -302,21 +304,22 @@ ntapfuse_mkdir (const char *path, mode_t mode)
   fullpath (path, fpath);
 
   int ret = mkdir (fpath, mode | S_IFDIR) ? -errno : 0;
-  if(ret != 0) {
-    return ret;
-  }
 
   struct stat file_stat;
   stat(fpath, &file_stat);
 
   int up_out = db_update(user, file_stat.st_size);
+  
+  return_lockfile(&lfd);
+
+  if(ret != 0) {
+    return ret;
+  }
 
   if(up_out != 0) {
     rmdir(fpath);
     return up_out;
   }
-  
-  return_lockfile(&lfd);
 
   return chown(fpath, user, group) ? -errno : 0;
 }
@@ -325,6 +328,10 @@ ntapfuse_mkdir (const char *path, mode_t mode)
 int
 ntapfuse_unlink (const char *path)
 {
+  if(strncmp(path, "/db", PATH_MAX) == 0) {
+    return -EPERM;
+  }
+
   // Get lockfile for atomic access
   int lfd = 0; // Lock file descriptor
   // Will return -1 on failure, otherwise continue
@@ -343,11 +350,12 @@ ntapfuse_unlink (const char *path)
 
   //update the db with the inverse of the file size
   int up_out = db_update(uid, -file_stat.st_size);
+  
+  return_lockfile(&lfd);
+
   if(up_out != 0){
     return up_out;
   }
-
-  return_lockfile(&lfd);
 
   return unlink (fpath) ? -errno : 0;
 }
@@ -355,6 +363,9 @@ ntapfuse_unlink (const char *path)
 int
 ntapfuse_rmdir (const char *path)
 {
+  if(strncmp(path, "/db", PATH_MAX) == 0) {
+    return -EPERM;
+  }
   // Get lockfile for atomic access
   int lfd = 0; // Lock file descriptor
   // Will return -1 on failure, otherwise continue
@@ -375,11 +386,12 @@ ntapfuse_rmdir (const char *path)
   //update directory
 
   int up_out = db_update(user, -dir_stat.st_size);
+
+  return_lockfile(&lfd);
+
   if(up_out !=0 ) {
     return up_out;
   }
-
-  return_lockfile(&lfd);
   
   return rmdir (fpath) ? -errno : 0;
 }
@@ -459,18 +471,20 @@ ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
   uid_t old_user = file_stat.st_uid;
   uid_t new_user = uid;
 
-  int up_out = db_update(new_user, file_stat.st_size);
-  if (up_out != 0) {
-    return up_out;
-  }
+  int up_out_new = db_update(new_user, file_stat.st_size);
 
-  up_out = db_update(old_user, -file_stat.st_size);
-  if (up_out != 0) {
-    /* TO DO: FIND WAY TO UNDO UPDATES */
-    return up_out;
-  }
+  int up_out_old = db_update(old_user, -file_stat.st_size);
   
   return_lockfile(&lfd);
+
+  if (up_out_new != 0) {
+    return up_out_new;
+  }
+
+  if (up_out_old != 0) {
+    /* TO DO: FIND WAY TO UNDO UPDATES */
+    return up_out_old;
+  }
 
   return chown (fpath, uid, gid) ? -errno : 0;
 }
@@ -484,9 +498,10 @@ ntapfuse_truncate (const char *path, off_t length)
   // Will return -1 on failure, otherwise continue
   if (get_lockfile(&lfd) == -1) { return -1; }
 
+  int len_ret;
   if (length < 0) {
     func_log("truncate called error: length < 0\n");
-    return -1;
+    len_ret = -1;
   }
   func_log("truncate called\n");
   char fpath[PATH_MAX];
@@ -502,9 +517,17 @@ ntapfuse_truncate (const char *path, off_t length)
   //if(file_stat.st_size == length)change= 0;
 
   //callstat db helper method, fails on return
-  if(db_update(file_stat.st_uid, change)!=0 ) return -1;
+
+  int up_out;
+  if(db_update(file_stat.st_uid, change) !=0 ) {
+    up_out = -1;
+  }
 
   return_lockfile(&lfd);
+
+  if (up_out != 0) {
+    return up_out;
+  }
 
   return truncate (fpath, length) ? -errno : 0;
 }
@@ -587,6 +610,7 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
 
   time(&raw_time);
   time_info = localtime(&raw_time);
+  int ret;
 
   // Iterate through all lines in original db file
   while (fgets(line, 80, lp) != NULL) {
@@ -605,8 +629,16 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
   		close(fi->fh);     // Close file being written
   		fclose(lp);        // Close orig file
   		fclose(temp);      // Close temp file
-		remove(temp_path); // Delete temp file
-		return -1;         // Return error TODO FIND CORRECT CODE FOR NOT ENOUGH SPACE
+      remove(temp_path); // Delete temp file
+
+      //Remove a file if it is empty and being written over quota
+      if(file_stat.st_size == 0) {
+        char file_path[PATH_MAX];
+        fullpath(path, file_path);
+        remove(file_path);
+      }
+      return_lockfile(&lfd);
+      return -ENOSPC;         // Return error TODO FIND CORRECT CODE FOR NOT ENOUGH SPACE
 	  }
 
 	  // Update size
@@ -641,9 +673,15 @@ ntapfuse_write (const char *path, const char *buf, size_t size, off_t off,
   		close(fi->fh);     // Close file being written
   		fclose(lp);        // Close orig file
   		fclose(temp);      // Close temp file
-		remove(temp_path); // Delete temp file
-		fclose(log);
-		return -1;         // Return error TODO FIND CORRECT CODE FOR NOT ENOUGH SPACE
+      remove(temp_path); // Delete temp file
+      fclose(log);
+
+      //Remove the file being written
+      char file_path[PATH_MAX];
+      fullpath(path, file_path);
+      remove(file_path);
+      return_lockfile(&lfd);
+      return -ENOSPC;         // Return error TODO FIND CORRECT CODE FOR NOT ENOUGH SPACE
 	  }
 	  fprintf(temp, "%d\t%d\t%d\n", userID, size, MAX_BYTES);
 
