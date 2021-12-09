@@ -95,19 +95,19 @@ else
     echo ""
 fi
 
-#echo "DISPLAYING db FILE:"
-#echo ""
-#cat db
-#echo ""
+echo "DISPLAYING db FILE:"
+echo ""
+cat db
+echo ""
 
 numbers_size=$(stat --format=%s "numbers")
-#echo "DISPLAYING TESTFILE SIZE"
-#echo $numbers_size
+echo "DISPLAYING TESTFILE SIZE"
+echo $numbers_size
 
 numbers_user=$(stat -c '%u' "numbers")
-#echo $numbers_user
+echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -165,11 +165,11 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
-dbfile="$(cat db)"
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
+#dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
-actual=$(echo $dbfile)
+#actual=$(echo $dbfile)
 
 if [[ "$expected" == "$actual" ]] 
 then
@@ -189,7 +189,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
 dbfile="$(cat db)"
 #cat db
 
@@ -249,7 +249,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -303,7 +303,7 @@ fi
 
 updated_size=$(($letters_size + $numbers_size))
 
-test_str="${letters_user} ${updated_size} 49152"
+test_str="${letters_user} ${updated_size} 5000"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -366,7 +366,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -383,7 +383,7 @@ fi
 
 rm numbers
 
-numbers_test_str="${numbers_user} 0 49152"
+numbers_test_str="${numbers_user} 0 5000"
 dbfile="$(cat db)"
 
 #echo "$numbers_test_str"
@@ -445,7 +445,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
 dbfile="$(cat db)"
 
 #echo "$numbers_test_str"
@@ -502,7 +502,7 @@ fi
 
 updated_size=$(($letters_size + $numbers_size))
 
-test_str="${letters_user} ${updated_size} 49152"
+test_str="${letters_user} ${updated_size} 5000"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -524,7 +524,7 @@ rm numbers
 
 updated_size=$(($updated_size - $numbers_size))
 
-test_str="${letters_user} ${updated_size} 49152"
+test_str="${letters_user} ${updated_size} 5000"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -586,7 +586,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -597,7 +597,7 @@ then
     #echo "TEST 6 SUCCEEDED"
     :
 else
-    #echo "TEST 6 FAILED"
+    echo "TEST 6 FAILED"
     :
 fi
 
@@ -632,12 +632,244 @@ hello_testuser_size=$(stat --format=%s "hello_testuser")
 #Get the user of the testuser's file
 hello_testuser_user=$(stat -c '%u' "hello_testuser")
 
-test6_str="${numbers_test_str} ${hello_testuser_user} ${hello_testuser_size} 49152"
+test6_str="${numbers_test_str} ${hello_testuser_user} ${hello_testuser_size} 5000"
 echo $test6_str
 
 rm db
 rm numbers
 echo ""
+
+
+
+echo ""
+
+#########################################################################
+### TEST 7? - CREATING MULTIPLE FILES WITH DIFFERENT USERS ###############
+#########################################################################
+
+echo ""
+#################################################### UNLINK TEST ######################################################
+#echo "1:    Creating new empty file"
+echo "new file data here" > newFile
+
+#SLEEP
+sleep .5
+
+#echo "2:    Checking db file exists"
+if [ -a db ];
+then
+    #echo "FILE EXISTS"
+    :
+else
+    echo "!!!!!!!!!!!!!!!!!!!!"
+    echo "db FILE DOES NOT EXISTS"
+    echo ""
+fi
+
+#echo "DISPLAYING db FILE:"
+#echo ""
+#cat db
+#echo ""
+
+numbers_size=$(stat --format=%s "newFile")
+#echo "DISPLAYING TESTFILE SIZE"
+#echo $numbers_size
+
+numbers_user=$(stat -c '%u' "newFile")
+#echo $numbers_user
+
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    :
+else
+    echo "FILE WRITE FAILED"
+fi
+#verified size, now verify not being as large
+
+rm newFile
+
+#numbers_size=$(stat --format=%s "newFile")
+#echo "DISPLAYING TESTFILE SIZE"
+#echo $numbers_size
+
+#numbers_user=$(stat -c '%u' "1000")
+#echo $numbers_user
+
+numbers_test_str="$numbers_user 0 5000"
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "TEST 7? PASSED"
+    :
+else
+    echo "FILE RM DID NOT DECREMENT"
+    cat db
+fi
+
+rm db
+
+echo "
+#########################################################################
+### TEST 8? - RENAME					    ###############
+#########################################################################
+"
+
+echo ""
+#echo "1:    Creating new empty file"
+
+echo "new file data here" > newFile
+
+#SLEEP
+sleep .5
+
+#echo "2:    Checking db file exists"
+if [ -a db ];
+then
+    #echo "FILE EXISTS"
+    :
+else
+    echo "!!!!!!!!!!!!!!!!!!!!"
+    echo "db FILE DOES NOT EXISTS"
+    echo ""
+fi
+
+#echo "DISPLAYING db FILE:"
+#echo ""
+#cat db
+#echo ""
+
+numbers_size=$(stat --format=%s "newFile")
+#echo "DISPLAYING TESTFILE SIZE"
+#echo $numbers_size
+
+numbers_user=$(stat -c '%u' "newFile")
+#echo $numbers_user
+
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    :
+else
+    echo "FILE WRITE FAILED"
+fi
+#verified size, now change name
+
+mv newFile numbers
+
+if [ -a numbers ];
+then
+	if [ ! -a newFile ];
+	then
+		echo "TEST 8? PASSED"
+		:
+	else 
+		echo "TEST 8? FAILED"
+	fi
+else
+	echo "TEST 8? FAILED"
+fi
+		
+
+rm numbers
+rm db
+
+
+echo "
+#########################################################################
+### TEST 8? - CHANGING OWNERSHIP			    ###############
+#########################################################################
+"
+
+echo ""
+#echo "1:    Creating new empty file"
+
+echo "new file data here" > newFile
+
+#SLEEP
+sleep .5
+
+#echo "2:    Checking db file exists"
+if [ -a db ];
+then
+    #echo "FILE EXISTS"
+    :
+else
+    echo "!!!!!!!!!!!!!!!!!!!!"
+    echo "db FILE DOES NOT EXISTS"
+    echo ""
+fi
+
+#echo "DISPLAYING db FILE:"
+#echo ""
+#cat db
+#echo ""
+
+numbers_size=$(stat --format=%s "newFile")
+#echo "DISPLAYING TESTFILE SIZE"
+#echo $numbers_size
+
+numbers_user=$(stat -c '%u' "newFile")
+#echo $numbers_user
+
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    :
+else
+    echo "FILE WRITE FAILED"
+fi
+#verified old owner, now change owner
+
+chown 1000 newFile
+
+numbers_user=$(stat -c '%u' "newFile")
+
+numbers_test_str="
+0 0 5000
+1000 ${numbers_size} 5000
+"
+dbfile="$(cat db)"
+cat db
+echo ${numbers_test_str}
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "CHOWN TEST PASSED"
+else
+    echo "CHOWN TEST FAILED"
+fi
+		
+
+rm newFile
+rm db
+
 
 
 # ------------------- CONCURRENCY TESTS------------------------
@@ -682,7 +914,7 @@ file1="$(cat file1)"
 file2_expected="987654321"
 file2="$(cat file2)"
 
-db_expected="1000 20 49152"
+db_expected="1000 20 5000"
 db=$(cat db)
 
 # Check db
