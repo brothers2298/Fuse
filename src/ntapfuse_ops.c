@@ -304,22 +304,21 @@ ntapfuse_mkdir (const char *path, mode_t mode)
   fullpath (path, fpath);
 
   int ret = mkdir (fpath, mode | S_IFDIR) ? -errno : 0;
-
+  if(ret != 0) {
+    return_lockfile(&lfd);
+    return ret;
+  }
   struct stat file_stat;
   stat(fpath, &file_stat);
 
   int up_out = db_update(user, file_stat.st_size);
-  
-  return_lockfile(&lfd);
-
-  if(ret != 0) {
-    return ret;
-  }
-
   if(up_out != 0) {
     rmdir(fpath);
+    return_lockfile(&lfd);
     return up_out;
   }
+  
+  return_lockfile(&lfd);
 
   return chown(fpath, user, group) ? -errno : 0;
 }
@@ -350,12 +349,12 @@ ntapfuse_unlink (const char *path)
 
   //update the db with the inverse of the file size
   int up_out = db_update(uid, -file_stat.st_size);
-  
-  return_lockfile(&lfd);
-
   if(up_out != 0){
+    return_lockfile(&lfd);
     return up_out;
   }
+
+  return_lockfile(&lfd);
 
   return unlink (fpath) ? -errno : 0;
 }
@@ -386,13 +385,13 @@ ntapfuse_rmdir (const char *path)
   //update directory
 
   int up_out = db_update(user, -dir_stat.st_size);
+  if(up_out !=0 ) {
+      return up_out;
+      return_lockfile(&lfd);
+  }
 
   return_lockfile(&lfd);
 
-  if(up_out !=0 ) {
-    return up_out;
-  }
-  
   return rmdir (fpath) ? -errno : 0;
 }
 
@@ -472,19 +471,19 @@ ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
   uid_t new_user = uid;
 
   int up_out_new = db_update(new_user, file_stat.st_size);
-
-  int up_out_old = db_update(old_user, -file_stat.st_size);
-  
-  return_lockfile(&lfd);
-
   if (up_out_new != 0) {
+    return_lockfile(&lfd);
     return up_out_new;
   }
 
+  int up_out_old = db_update(old_user, -file_stat.st_size);
   if (up_out_old != 0) {
     /* TO DO: FIND WAY TO UNDO UPDATES */
+    return_lockfile(&lfd);
     return up_out_old;
   }
+  
+  return_lockfile(&lfd);
 
   return chown (fpath, uid, gid) ? -errno : 0;
 }
@@ -522,13 +521,12 @@ ntapfuse_truncate (const char *path, off_t length)
   if(db_update(file_stat.st_uid, change) !=0 ) {
     up_out = -1;
   }
-
-  return_lockfile(&lfd);
-
-  if (up_out != 0) {
+   if (up_out != 0) {
     return up_out;
+    return_lockfile(&lfd);
   }
 
+  return_lockfile(&lfd);
   return truncate (fpath, length) ? -errno : 0;
 }
 

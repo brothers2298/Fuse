@@ -610,3 +610,13 @@ opendir called
 readdir called
 releasedir called
 releasedir called
+getattr called
+open called
+getattr called
+read called
+release called
+getattr called
+open called
+read called
+release called
+getattr called
