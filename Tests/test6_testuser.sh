@@ -6,7 +6,7 @@
 cd ..
 cd mp_test
 
-whoami
+#whoami
 
 #Create a file in the db as testuser
 echo "Hello from testuser" > hello_testuser

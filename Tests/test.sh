@@ -2,7 +2,7 @@
 # ----- SETUP -----
 
 # Exit if any command fails
-set -e
+#set -e
 
 #Go back to main Fuse directory
 cd ..
@@ -17,6 +17,13 @@ sudo make install
 
 # Mount directory
 #ntapfuse mount bd_test/ mp_test/
+
+#CALL BETWEEN TESTS
+#sudo umount mp_test/
+#rm -rf bd_test/ mp_test/
+#mkdir bd_test/
+#mkdir mp_test/
+#sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
 
 # Enter mountpoint directory
 #cd mp_test/
@@ -41,7 +48,7 @@ mkdir bd_test/
 mkdir mp_test/
 
 # Mount directory
-ntapfuse mount bd_test/ mp_test/ -o allow_other
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
 
 #Test make sure bd_test was created
 if [ -d bd_test/ ];
@@ -75,7 +82,7 @@ cd mp_test/
 
 echo ""
 echo "########################################################################
-### TEST 1 - CREATE FILE USING ECHO - NO db PRESENT ###################
+### TEST 1 - CREATE FILE USING ECHO - NO DB PRESENT ####################
 ########################################################################"
 
 #echo "1:    Creating numbers file"
@@ -107,11 +114,14 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
 actual=$(echo $dbfile)
+
+#echo $expected
+#echo $actual
 
 if [[ "$expected" == "$actual" ]] 
 then
@@ -120,8 +130,14 @@ else
     echo "TEST 1 FAILED"
 fi
 
-rm db
-rm numbers
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
 echo ""
 
 
@@ -165,7 +181,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -189,7 +205,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 #cat db
 
@@ -204,16 +220,21 @@ else
     echo "TEST 2 FAILED"
 fi
 
-rm numbers
-rm db
-
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
 echo ""
 
 #########################################################################
 ### TEST 3 - CREATING TWO DIFFERENT FILES WITH SAME USER ################
 #########################################################################
 
-
+echo ""
 echo "########################################################################
 ### TEST 3 - CREATING TWO DIFFERENT FILES WITH SAME USER ###############
 ########################################################################"
@@ -249,7 +270,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -303,7 +324,7 @@ fi
 
 updated_size=$(($letters_size + $numbers_size))
 
-test_str="${letters_user} ${updated_size} 49152"
+test_str="${letters_user} ${updated_size} 4100"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -320,10 +341,14 @@ else
     echo "TEST 3 FAILED"
 fi
 
-rm numbers
-rm letters 
-rm db
-
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
 echo ""
 
 #########################################################################
@@ -366,7 +391,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -383,7 +408,7 @@ fi
 
 rm numbers
 
-numbers_test_str="${numbers_user} 0 49152"
+numbers_test_str="${numbers_user} 0 4100"
 dbfile="$(cat db)"
 
 #echo "$numbers_test_str"
@@ -400,10 +425,15 @@ else
     echo "TEST 4 FAILED"
 fi
 
-rm db
-
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
 echo ""
-
 
 #########################################################################
 ### TEST 5 - CREATING MULTIPLE FILES AND REMOVING ONE ###################
@@ -445,7 +475,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 #echo "$numbers_test_str"
@@ -502,7 +532,7 @@ fi
 
 updated_size=$(($letters_size + $numbers_size))
 
-test_str="${letters_user} ${updated_size} 49152"
+test_str="${letters_user} ${updated_size} 4100"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -524,7 +554,7 @@ rm numbers
 
 updated_size=$(($updated_size - $numbers_size))
 
-test_str="${letters_user} ${updated_size} 49152"
+test_str="${letters_user} ${updated_size} 4100"
 dbfile="$(cat db)"
 
 #echo "$test_str"
@@ -541,18 +571,23 @@ else
     echo "TEST 5 FAILED"
 fi
 
-rm letters 
-rm db
-
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
 echo ""
 
 #########################################################################
-### TEST 6 - CREATING MULTIPLE FILES WITH DIFFERENT USERS ###############
+### TEST 6 - ECHO MULTIPLE FILES WITH DIFFERENT USERS ###############
 #########################################################################
 
 echo ""
 echo "########################################################################
-### TEST 6 - CREATING MULTIPLE FILES WITH DIFFERENT USERS ##############
+### TEST 6 - ECHO MULTIPLE FILES WITH DIFFERENT USERS ##################
 ########################################################################"
 
 #################################################### CREATE FIRST FILE WITH ROOT ######################################################
@@ -570,7 +605,7 @@ then
     :
 else
     echo "!!!!!!!!!!!!!!!!!!!!"
-    echo "db FILE DOES NOT EXISTS"
+    echo "DB FILE DOES NOT EXISTS"
     echo ""
 fi
 
@@ -586,7 +621,7 @@ numbers_size=$(stat --format=%s "numbers")
 numbers_user=$(stat -c '%u' "numbers")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 49152"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -632,12 +667,319 @@ hello_testuser_size=$(stat --format=%s "hello_testuser")
 #Get the user of the testuser's file
 hello_testuser_user=$(stat -c '%u' "hello_testuser")
 
-test6_str="${numbers_test_str} ${hello_testuser_user} ${hello_testuser_size} 49152"
-echo $test6_str
+test6_expected="${numbers_test_str} ${hello_testuser_user} ${hello_testuser_size} 4100"
+
+
+test6_actual="$(cat db)"
+
+expected=$(echo $test6_expected)
+actual=$(echo $test6_actual)
+
+#echo $expected
+#echo $actual
+
+if [[ "$expected" == "$actual" ]]
+then
+    echo "TEST 6 SUCCEEDED"
+else
+    echo "TEST 6 FAILED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 7 - TOUCH TO MAKE EMPTY FILE ###################################
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 7 - TOUCH TO MAKE EMPTY FILE ##################################
+########################################################################"
+
+#Doing this because creating an empty file should have file size of 0
+
+touch empty 
+
+test7_user=$(stat -c '%u' "empty")
+test7_size=$(stat --format=%s "empty")
+
+if [[ "$test7_size" == "0" ]]
+then
+    echo "FILESIZE == 0"
+else
+    echo "PROBLEM: FILESIZE != 0"
+fi
+
+test7_expected="${test7_user} ${test7_size} 4100"
+test7_actual="$(cat db)"
+
+expected=$(echo $test7_expected)
+actual=$(echo $test7_actual)
+
+#echo $expected
+#echo $actual
+
+
+if [[ "$expected" == "$actual" ]]
+then
+    echo "TEST 7 SUCCEEDED"
+else
+    echo "TEST 7 FAILED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 8 - DELETING THE DB FILE #######################################
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 8 - DELETING THE DB FILE ######################################
+########################################################################"
+
+touch empty
+
+test8_expected="$(cat db)"
 
 rm db
-rm numbers
+rm -rf db
+
+test8_actual="$(cat db)"
+
+expected=$(echo $test8_expected)
+actual=$(echo $test8_actual)
+
+if [[ "$expected" == "$actual" ]]
+then
+    echo "TEST 8 SUCCEEDED"
+else
+    echo "TEST 8 FAILED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
 echo ""
+
+#########################################################################
+### TEST 9 - MAKING A DIRECTORY #########################################
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 9 - MAKING A DIRECTORY ########################################
+########################################################################"
+
+mkdir folder
+
+test9_user=$(stat -c '%u' "folder")
+test9_size=$(stat --format=%s "folder")
+
+test9_expected="${test9_user} ${test9_size} 4100"
+test9_actual="$(cat db)"
+
+expected=$(echo $test9_expected)
+actual=$(echo $test9_actual)
+
+if [[ "$expected" == "$actual" ]]
+then
+    echo "TEST 9 SUCCEEDED"
+else
+    echo "TEST 9 FAILED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 10 - CREATING OVER QUOTA #########################################
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 10 - CREATING OVER QUOTA ######################################
+########################################################################"
+
+mkdir folder
+
+test10_user=$(stat -c '%u' "folder")
+test10_size=$(stat --format=%s "folder")
+
+test10_expected="${test9_user} ${test9_size} 4100"
+
+echo "hello" > hello
+
+test10_actual="$(cat db)"
+
+expected=$(echo $test10_expected)
+actual=$(echo $test10_actual)
+
+if [[ -f hello ]]
+then
+    echo "TEST 10 FAILED: FILE WRONGLY CREATED"
+    exit
+else 
+    :
+fi
+
+if [[ "$expected" == "$actual" ]]
+then
+    echo "TEST 10 SUCCEEDED"
+else
+    echo "TEST 10 FAILED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 11 - APPENDING OVER QUOTA #########################################
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 11 - APPENDING OVER QUOTA #####################################
+########################################################################"
+
+mkdir folder
+
+test11_user=$(stat -c '%u' "folder")
+folder_size=$(stat --format=%s "folder")
+
+echo "hi" > hi
+
+hi_size=$(stat --format=%s "hi")
+
+test11_updated_size=$(($hi_size + $folder_size))
+
+test11_expected="${test11_user} ${test11_updated_size} 4100"
+
+echo "1234" >> hi
+
+test11_actual="$(cat db)"
+
+expected=$(echo $test11_expected)
+actual=$(echo $test11_actual)
+
+echo $actual
+echo $expected
+
+if [[ "$expected" == "$actual" ]]
+then
+    echo "TEST 11 SUCCEEDED"
+else
+    echo "TEST 11 FAILED"
+fi
+
+## MAKE SURE HI DID NOT ALLOW APPEND ##
+hi_size_updated=$(stat --format=%s "hi")
+
+#echo $hi_size
+#echo $hi_size_updated
+
+if [[ $hi_size == $hi_size_updated ]]
+then
+    :
+else
+    echo "TEST 11 FAILED: HI WRONGLY APPENDED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 12 - CREATING DIRECTORY OVER QUOTA #########################################
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 12 - CREATING DIRECTORY OVER QUOTA ############################
+########################################################################"
+
+mkdir folder
+
+test12_user=$(stat -c '%u' "folder")
+test12_size=$(stat --format=%s "folder")
+
+test12_expected="${test12_user} ${test12_size} 4100"
+
+mkdir folder_2
+
+if [[ -f folder_2 ]]
+then
+    echo "TEST 10 FAILED: FILE WRONGLY CREATED"
+    exit
+else 
+    :
+fi
+
+test12_actual="$(cat db)"
+
+expected=$(echo $test12_expected)
+actual=$(echo $test12_actual)
+
+if [[ "$expected" == "$actual" ]]
+then
+    echo "TEST 12 SUCCEEDED"
+else
+    echo "TEST 12 FAILED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+
+
 
 
 # ------------------- CONCURRENCY TESTS------------------------
@@ -682,7 +1024,7 @@ file1="$(cat file1)"
 file2_expected="987654321"
 file2="$(cat file2)"
 
-db_expected="1000 20 49152"
+db_expected="1000 20 4100"
 db=$(cat db)
 
 # Check db
