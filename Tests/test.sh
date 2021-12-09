@@ -1,4 +1,3 @@
-
 # ----- SETUP -----
 
 # Exit if any command fails
