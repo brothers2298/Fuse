@@ -981,7 +981,238 @@ cd mp_test
 echo ""
 
 
+#########################################################################
+### TEST 13 - UNLINK ###############
+#########################################################################
 
+echo "
+#########################################################################
+### TEST 13 - UNLINK			    ###############
+#########################################################################
+"
+
+echo ""
+#################################################### UNLINK TEST ######################################################
+#echo "1:    Creating new empty file"
+echo "new file data here" > newFile
+
+#SLEEP
+sleep .5
+
+#echo "2:    Checking db file exists"
+if [ -a db ];
+then
+    #echo "FILE EXISTS"
+    :
+else
+    echo "!!!!!!!!!!!!!!!!!!!!"
+    echo "db FILE DOES NOT EXISTS"
+    echo ""
+fi
+
+#echo "DISPLAYING db FILE:"
+#echo ""
+#cat db
+#echo ""
+
+numbers_size=$(stat --format=%s "newFile")
+#echo "DISPLAYING TESTFILE SIZE"
+#echo $numbers_size
+
+numbers_user=$(stat -c '%u' "newFile")
+#echo $numbers_user
+
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    :
+else
+    echo "FILE WRITE FAILED"
+fi
+#verified size, now verify not being as large
+
+rm newFile
+
+#numbers_size=$(stat --format=%s "newFile")
+#echo "DISPLAYING TESTFILE SIZE"
+#echo $numbers_size
+
+#numbers_user=$(stat -c '%u' "1000")
+#echo $numbers_user
+
+numbers_test_str="$numbers_user 0 5000"
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "TEST 7? PASSED"
+    :
+else
+    echo "FILE RM DID NOT DECREMENT"
+    cat db
+fi
+
+rm db
+
+echo "
+#########################################################################
+### TEST 14 - RENAME					    ###############
+#########################################################################
+"
+
+echo ""
+#echo "1:    Creating new empty file"
+
+echo "new file data here" > newFile
+
+#SLEEP
+sleep .5
+
+#echo "2:    Checking db file exists"
+if [ -a db ];
+then
+    #echo "FILE EXISTS"
+    :
+else
+    echo "!!!!!!!!!!!!!!!!!!!!"
+    echo "db FILE DOES NOT EXISTS"
+    echo ""
+fi
+
+#echo "DISPLAYING db FILE:"
+#echo ""
+#cat db
+#echo ""
+
+numbers_size=$(stat --format=%s "newFile")
+#echo "DISPLAYING TESTFILE SIZE"
+#echo $numbers_size
+
+numbers_user=$(stat -c '%u' "newFile")
+#echo $numbers_user
+
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    :
+else
+    echo "FILE WRITE FAILED"
+fi
+#verified size, now change name
+
+mv newFile numbers
+
+if [ -a numbers ];
+then
+	if [ ! -a newFile ];
+	then
+		echo "TEST 8? PASSED"
+		:
+	else 
+		echo "TEST 8? FAILED"
+	fi
+else
+	echo "TEST 8? FAILED"
+fi
+		
+
+rm numbers
+rm db
+
+
+echo "
+#########################################################################
+### TEST 15 - CHANGING OWNERSHIP			    ###############
+#########################################################################
+"
+
+echo ""
+#echo "1:    Creating new empty file"
+
+echo "new file data here" > newFile
+
+#SLEEP
+sleep .5
+
+#echo "2:    Checking db file exists"
+if [ -a db ];
+then
+    #echo "FILE EXISTS"
+    :
+else
+    echo "!!!!!!!!!!!!!!!!!!!!"
+    echo "db FILE DOES NOT EXISTS"
+    echo ""
+fi
+
+#echo "DISPLAYING db FILE:"
+#echo ""
+#cat db
+#echo ""
+
+numbers_size=$(stat --format=%s "newFile")
+#echo "DISPLAYING TESTFILE SIZE"
+#echo $numbers_size
+
+numbers_user=$(stat -c '%u' "newFile")
+#echo $numbers_user
+
+numbers_test_str="${numbers_user} ${numbers_size} 5000"
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    :
+else
+    echo "FILE WRITE FAILED"
+fi
+#verified old owner, now change owner
+
+chown 1000 newFile
+
+numbers_user=$(stat -c '%u' "newFile")
+
+numbers_test_str="
+0 0 5000
+1000 ${numbers_size} 5000
+"
+dbfile="$(cat db)"
+cat db
+echo ${numbers_test_str}
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+dbfile="$(cat db)"
+
+expected=$(echo $numbers_test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "CHOWN TEST PASSED"
+else
+    echo "CHOWN TEST FAILED"
+fi
+		
+
+rm newFile
+rm db
 
 
 # ------------------- CONCURRENCY TESTS------------------------
