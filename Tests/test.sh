@@ -898,8 +898,8 @@ test11_actual="$(cat db)"
 expected=$(echo $test11_expected)
 actual=$(echo $test11_actual)
 
-echo $actual
-echo $expected
+#echo $actual
+#echo $expected
 
 if [[ "$expected" == "$actual" ]]
 then
@@ -986,11 +986,9 @@ echo ""
 
 echo "
 #########################################################################
-### TEST 13 - UNLINK			    ###############
-#########################################################################
-"
+### TEST 13 - UNLINK ####################################################
+#########################################################################"
 
-echo ""
 #################################################### UNLINK TEST ######################################################
 #echo "1:    Creating new empty file"
 echo "new file data here" > newFile
@@ -1014,17 +1012,17 @@ fi
 #cat db
 #echo ""
 
-numbers_size=$(stat --format=%s "newFile")
+newFile_size=$(stat --format=%s "newFile")
 #echo "DISPLAYING TESTFILE SIZE"
-#echo $numbers_size
+#echo $newFile_size
 
-numbers_user=$(stat -c '%u' "newFile")
-#echo $numbers_user
+newFile_user=$(stat -c '%u' "newFile")
+#echo $newFile_size
 
-numbers_test_str="${numbers_user} ${numbers_size} 4100"
+newFile_test_str="${newFile_user} ${newFile_size} 4100"
 dbfile="$(cat db)"
 
-expected=$(echo $numbers_test_str)
+expected=$(echo $newFile_test_str)
 actual=$(echo $dbfile)
 
 if [[ "$expected" == "$actual" ]] 
@@ -1037,37 +1035,43 @@ fi
 
 rm newFile
 
-#numbers_size=$(stat --format=%s "newFile")
+#newFile_size=$(stat --format=%s "newFile")
 #echo "DISPLAYING TESTFILE SIZE"
-#echo $numbers_size
+#echo $newFile_size
 
-#numbers_user=$(stat -c '%u' "1000")
-#echo $numbers_user
+#newFile_size=$(stat -c '%u' "1000")
+#echo $newFile_size
 
-numbers_test_str="$numbers_user 0 4100"
+newFile_test_str="$newFile_user 0 4100"
 dbfile="$(cat db)"
 
-expected=$(echo $numbers_test_str)
+expected=$(echo $newFile_test_str)
 actual=$(echo $dbfile)
 
 if [[ "$expected" == "$actual" ]] 
 then
-    echo "TEST 13 PASSED"
+    echo "TEST 13 SUCCEEDED"
     :
 else
     echo "FILE RM DID NOT DECREMENT"
+    echo "TEST 13 FAILED"
     cat db
 fi
 
-rm db
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
 
 echo "
 #########################################################################
-### TEST 14 - RENAME					    ###############
-#########################################################################
-"
+### TEST 14 - RENAME ####################################################
+#########################################################################"
 
-echo ""
 #echo "1:    Creating new empty file"
 
 echo "new file data here" > newFile
@@ -1091,17 +1095,17 @@ fi
 #cat db
 #echo ""
 
-numbers_size=$(stat --format=%s "newFile")
+newFile_size=$(stat --format=%s "newFile")
 #echo "DISPLAYING TESTFILE SIZE"
 #echo $numbers_size
 
-numbers_user=$(stat -c '%u' "newFile")
+newFile_user=$(stat -c '%u' "newFile")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 4100"
+newFile_test_str="${newFile_user} ${newFile_size} 4100"
 dbfile="$(cat db)"
 
-expected=$(echo $numbers_test_str)
+expected=$(echo $newFile_test_str)
 actual=$(echo $dbfile)
 
 if [[ "$expected" == "$actual" ]] 
@@ -1118,7 +1122,7 @@ if [ -a numbers ];
 then
 	if [ ! -a newFile ];
 	then
-		echo "TEST 14 PASSED"
+		echo "TEST 14 SUCCEEDED"
 		:
 	else 
 		echo "TEST 14 FAILED"
@@ -1127,18 +1131,20 @@ else
 	echo "TEST 14 FAILED"
 fi
 		
-
-rm numbers
-rm db
-
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
 
 echo "
 #########################################################################
-### TEST 15 - CHANGING OWNERSHIP			    ###############
-#########################################################################
-"
-
-echo ""
+### TEST 15 - CHANGING OWNERSHIP ########################################
+#########################################################################"
 #echo "1:    Creating new empty file"
 
 echo "new file data here" > newFile
@@ -1146,34 +1152,19 @@ echo "new file data here" > newFile
 #SLEEP
 sleep .5
 
-#echo "2:    Checking db file exists"
-if [ -a db ];
-then
-    #echo "FILE EXISTS"
-    :
-else
-    echo "!!!!!!!!!!!!!!!!!!!!"
-    echo "db FILE DOES NOT EXISTS"
-    echo ""
-fi
-
-#echo "DISPLAYING db FILE:"
-#echo ""
-#cat db
-#echo ""
-
-numbers_size=$(stat --format=%s "newFile")
+newFile_size=$(stat --format=%s "newFile")
 #echo "DISPLAYING TESTFILE SIZE"
-#echo $numbers_size
+#echo $newFile_size
+newFile_user=$(stat -c '%u' "newFile")
+#echo $newFile_user
 
-numbers_user=$(stat -c '%u' "newFile")
-#echo $numbers_user
-
-numbers_test_str="${numbers_user} ${numbers_size} 4100"
+newFile_test_str="${newFile_user} ${newFile_size} 4100"
 dbfile="$(cat db)"
 
-expected=$(echo $numbers_test_str)
+expected=$(echo $newFile_test_str)
 actual=$(echo $dbfile)
+
+#echo "OLD OWNER: $newFile_user"
 
 if [[ "$expected" == "$actual" ]] 
 then
@@ -1181,37 +1172,39 @@ then
 else
     echo "FILE WRITE FAILED"
 fi
+
+old_user=$newFile_user
+old_size=$newfile_size
+
 #verified old owner, now change owner
 
-chown 1000 newFile
+chown testuser newFile
 
-numbers_user=$(stat -c '%u' "newFile")
+newFile_test_str="${old_user} 0 4100"
 
-numbers_test_str="
-0 0 4100
-1000 ${numbers_size} 4100
-"
+newFile_update_user=$(stat -c '%u' "newFile")
+newFile_update_size=$(stat --format=%s "newFile")
+
+#echo "NEW OWNER: $newFile_update_user"
+
+newFile_test_str_update="${newFile_test_str} ${newFile_update_user} ${newFile_update_size} 4100"
 dbfile="$(cat db)"
-cat db
-echo ${numbers_test_str}
+#cat db
+#echo ${newFile_test_str}
 
-expected=$(echo $numbers_test_str)
+expected=$(echo $newFile_test_str_update)
 actual=$(echo $dbfile)
 dbfile="$(cat db)"
 
-expected=$(echo $numbers_test_str)
-actual=$(echo $dbfile)
+echo "FILE STAT: ${expected}"
+echo "DB:        ${actual}"
 
 if [[ "$expected" == "$actual" ]] 
 then
-    echo "CHOWN TEST PASSED"
+    echo "TEST 15 SUCCEEDED"
 else
-    echo "CHOWN TEST FAILED"
+    echo "TEST 15 FAILED"
 fi
-		
-
-rm newFile
-rm db
 
 
 # ------------------- CONCURRENCY TESTS------------------------
