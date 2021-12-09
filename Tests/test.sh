@@ -1021,7 +1021,7 @@ numbers_size=$(stat --format=%s "newFile")
 numbers_user=$(stat -c '%u' "newFile")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 5000"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -1044,7 +1044,7 @@ rm newFile
 #numbers_user=$(stat -c '%u' "1000")
 #echo $numbers_user
 
-numbers_test_str="$numbers_user 0 5000"
+numbers_test_str="$numbers_user 0 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -1052,7 +1052,7 @@ actual=$(echo $dbfile)
 
 if [[ "$expected" == "$actual" ]] 
 then
-    echo "TEST 7? PASSED"
+    echo "TEST 13 PASSED"
     :
 else
     echo "FILE RM DID NOT DECREMENT"
@@ -1098,7 +1098,7 @@ numbers_size=$(stat --format=%s "newFile")
 numbers_user=$(stat -c '%u' "newFile")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 5000"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -1118,13 +1118,13 @@ if [ -a numbers ];
 then
 	if [ ! -a newFile ];
 	then
-		echo "TEST 8? PASSED"
+		echo "TEST 14 PASSED"
 		:
 	else 
-		echo "TEST 8? FAILED"
+		echo "TEST 14 FAILED"
 	fi
 else
-	echo "TEST 8? FAILED"
+	echo "TEST 14 FAILED"
 fi
 		
 
@@ -1169,7 +1169,7 @@ numbers_size=$(stat --format=%s "newFile")
 numbers_user=$(stat -c '%u' "newFile")
 #echo $numbers_user
 
-numbers_test_str="${numbers_user} ${numbers_size} 5000"
+numbers_test_str="${numbers_user} ${numbers_size} 4100"
 dbfile="$(cat db)"
 
 expected=$(echo $numbers_test_str)
@@ -1188,8 +1188,8 @@ chown 1000 newFile
 numbers_user=$(stat -c '%u' "newFile")
 
 numbers_test_str="
-0 0 5000
-1000 ${numbers_size} 5000
+0 0 4100
+1000 ${numbers_size} 4100
 "
 dbfile="$(cat db)"
 cat db
@@ -1230,16 +1230,12 @@ echo ""
 
 
 #########################################################################
-### TEST C1 - CREATE FILE USING ECHO - NO DATABSE PRESENT ################
+### TEST 16 - CREATE FILE USING ECHO - NO DATABSE PRESENT ################
 #########################################################################
 
 echo ""
-echo "----- BEGINNING CONCURRENCY TESTS, THESE ARE SLOWER DUE TO ADDED DELAY -----"
-echo ""
-
-echo ""
 echo "########################################################################
-### TEST C1 - ONE USER WRITING TO TWO DIFFERENT FILES AT SAME TIME #####
+### TEST 16 - ONE USER WRITING TO TWO DIFFERENT FILES AT SAME TIME #####
 ########################################################################"
 
 #echo "1:    Creating numbers file"
@@ -1291,12 +1287,12 @@ fi
 
 
 #########################################################################
-### TEST C2 - ONE USER CONCURRENTLY REMOVING TWO FILES ##################
+### TEST 17 - ONE USER CONCURRENTLY REMOVING TWO FILES ##################
 #########################################################################
 
 echo ""
 echo "########################################################################
-### TEST C2 - ONE USER CONCURRENTLY REMOVING TWO FILES #################
+### TEST 17 - ONE USER CONCURRENTLY REMOVING TWO FILES #################
 ########################################################################"
 
 python3 ${repo_root}/Tests/c2.py
@@ -1319,7 +1315,7 @@ fi
 
 if [[ -f file1 ]]
 then
-    echo "TEST C2 FAILED: FILE 1 NOT DELETED"
+    echo "TEST 17 FAILED: FILE 1 NOT DELETED"
     exit
 else 
     echo "FILE 1 PROPERLY DELETED"
@@ -1327,11 +1323,203 @@ fi
 
 if [[ -f file2 ]]
 then
-    echo "TEST C2 FAILED: FILE 2 NOT DELETED"
+    echo "TEST 17 FAILED: FILE 2 NOT DELETED"
     exit
 else 
     echo "FILE 2 PROPERLY DELETED"
 fi
+
+#########################################################################
+### TEST 18 - SINGLE USER CONCURRENT CREATE AND REMOVE FILE #############
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 18 - SINGLE USER CONCURRENT CREATE AND REMOVE FILE #############
+########################################################################"
+
+echo "987654321" > file2
+
+python3 ${repo_root}/Tests/c3.py
+
+db_expected="1000 10 4100"
+db=$(cat db)
+
+# Check db
+expected=$(echo $db_expected)
+actual=$(echo $db)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "DB PASS"
+else
+    echo "DB FAIL"
+    echo $expected
+    echo $actual
+fi
+
+if [[ -f file1 ]]
+then
+    echo "FILE 1 PROPERLY CREATED"
+else 
+    echo "TEST 18 FAILED: FILE 1 NOT CREATED"
+    exit
+fi
+
+if [[ -f file2 ]]
+then
+    echo "TEST 18 FAILED: FILE 2 NOT DELETED"
+    exit
+else 
+    echo "FILE 2 PROPERLY DELETED"
+fi
+
+rm file1
+
+
+#########################################################################
+### TEST 19 - 2 USERS CONCURRENTLY WRITING TO DIFFERENT FILES ###########
+#########################################################################
+
+echo "########################################################################
+### TEST 19 - 2 USERS CONCURRENTLY WRITING TO DIFFERENT FILES ###########
+########################################################################"
+
+# Run first concurrency test
+python3 ${repo_root}/Tests/c4.py
+
+file1_expected="123456789"
+file1="$(cat file1)"
+file2_expected="987654321"
+file2="$(cat file2)"
+
+db_expected="1000 10 4100 1001 10 4100"
+db=$(cat db)
+
+# Check db
+expected=$(echo $db_expected)
+actual=$(echo $db)
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "DB PASS"
+else
+    echo "DB FAIL"
+    echo $expected
+    echo $actual
+fi
+
+# Check file 1
+expected=$(echo $file1_expected)
+actual=$(echo $file1)
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "FILE 1 PASS"
+else
+    echo "FILE 1 FAIL"
+fi
+
+# Check file 2
+expected=$(echo $file2_expected)
+actual=$(echo $file2)
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "FILE 2 PASS"
+else
+    echo "FILE 2 FAIL"
+fi
+
+#########################################################################
+### TEST 20 - TWO USER CONCURRENTLY REMOVING TWO FILES ##################
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 20 - TWO USER CONCURRENTLY REMOVING TWO FILES #################
+########################################################################"
+
+python3 ${repo_root}/Tests/c5.py
+
+db_expected="1000 0 4100 1001 0 4100"
+db=$(cat db)
+
+# Check db
+expected=$(echo $db_expected)
+actual=$(echo $db)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "DB PASS"
+else
+    echo "DB FAIL"
+    echo $expected
+    echo $actual
+fi
+
+if [[ -f file1 ]]
+then
+    echo "TEST 20 FAILED: FILE 1 NOT DELETED"
+    exit
+else 
+    echo "FILE 1 PROPERLY DELETED"
+fi
+
+if [[ -f file2 ]]
+then
+    echo "TEST 20 FAILED: FILE 2 NOT DELETED"
+    exit
+else 
+    echo "FILE 2 PROPERLY DELETED"
+fi
+
+#########################################################################
+### TEST 21 - MULTIPLE USER CONCURRENT CREATE AND REMOVE FILE #############
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST 21 - MULTIPLE USER CONCURRENT CREATE AND REMOVE FILE #############
+########################################################################"
+
+echo "987654321" > ../mp_test/file2
+
+python3 ${repo_root}/Tests/c6.py
+
+cat db
+ls
+
+db_expected="1000 0 4100 1001 10 4100"
+db=$(cat db)
+
+# Check db
+expected=$(echo $db_expected)
+actual=$(echo $db)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "DB PASS"
+else
+    echo "DB FAIL"
+    echo $expected
+    echo $actual
+fi
+
+if [[ -f file1 ]]
+then
+    echo "FILE 1 PROPERLY CREATED"
+else 
+    echo "TEST 18 FAILED: FILE 1 NOT CREATED"
+    exit
+fi
+
+if [[ -f file2 ]]
+then
+    echo "TEST 18 FAILED: FILE 2 NOT DELETED"
+    exit
+else 
+    echo "FILE 2 PROPERLY DELETED"
+fi
+
+rm ../mp_test/file1
 
 # ------------------- TESTS END HERE ------------------------
 
