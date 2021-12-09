@@ -843,19 +843,21 @@ test10_actual="$(cat db)"
 expected=$(echo $test10_expected)
 actual=$(echo $test10_actual)
 
-if [[ -f hello ]]
-then
-    echo "TEST 10 FAILED: FILE WRONGLY CREATED"
-    exit
-else 
-    :
-fi
+#if [[ -f hello ]]
+#then
+    #echo "TEST 10 FAILED: FILE WRONGLY CREATED"
+    #exit
+#else 
+    #:
+#fi
 
 if [[ "$expected" == "$actual" ]]
 then
     echo "TEST 10 SUCCEEDED"
 else
     echo "TEST 10 FAILED"
+    echo $expected
+    echo $actual
 fi
 
 cd ..
@@ -985,18 +987,16 @@ echo ""
 # ------------------- CONCURRENCY TESTS------------------------
 
 cd ..
-
-# Close program, must be restarted to update environment var
-sudo umount mp_test/
-
-# Set up environment variable for initial tests
-export SLEEP_TIME=1
-
-ntapfuse mount bd_test/ mp_test/ -o allow_other
-
 repo_root=$(pwd)
-
-cd mp_test/
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+export SLEEP_TIME=1
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
 
 
 #########################################################################
@@ -1034,6 +1034,7 @@ if [[ "$expected" == "$actual" ]]
 then
     echo "DB PASS"
 else
+    echo "DB FAIL"
     echo $expected
     echo $actual
 fi
@@ -1043,9 +1044,9 @@ expected=$(echo $file1_expected)
 actual=$(echo $file1)
 if [[ "$expected" == "$actual" ]] 
 then
-    echo "F1 PASS"
+    echo "FILE 1 PASS"
 else
-    echo "FAIL"
+    echo "FILE 1 FAIL"
 fi
 
 # Check file 2
@@ -1053,14 +1054,54 @@ expected=$(echo $file2_expected)
 actual=$(echo $file2)
 if [[ "$expected" == "$actual" ]] 
 then
-    echo "F2 PASS"
+    echo "FILE 2 PASS"
 else
-    echo "FAIL"
+    echo "FILE 2 FAIL"
 fi
 
 
-rm file1
-rm file2
+#########################################################################
+### TEST C2 - ONE USER CONCURRENTLY REMOVING TWO FILES ##################
+#########################################################################
+
+echo ""
+echo "########################################################################
+### TEST C2 - ONE USER CONCURRENTLY REMOVING TWO FILES #################
+########################################################################"
+
+python3 ${repo_root}/Tests/c2.py
+
+db_expected="1000 0 4100"
+db=$(cat db)
+
+# Check db
+expected=$(echo $db_expected)
+actual=$(echo $db)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "DB PASS"
+else
+    echo "DB FAIL"
+    echo $expected
+    echo $actual
+fi
+
+if [[ -f file1 ]]
+then
+    echo "TEST C2 FAILED: FILE 1 NOT DELETED"
+    exit
+else 
+    echo "FILE 1 PROPERLY DELETED"
+fi
+
+if [[ -f file2 ]]
+then
+    echo "TEST C2 FAILED: FILE 2 NOT DELETED"
+    exit
+else 
+    echo "FILE 2 PROPERLY DELETED"
+fi
 
 # ------------------- TESTS END HERE ------------------------
 

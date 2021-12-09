@@ -19,7 +19,7 @@
  * along with ntapfuse. If not, see <http://www.gnu.org/licenses/>.
  */
 #define _XOPEN_SOURCE 500
-#define MAX_BYTES 5000
+#define MAX_BYTES 4100
 #define FILE_SIZE = 0
 #define DIRECTORY_SIZE = 4096
 
