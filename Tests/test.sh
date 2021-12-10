@@ -1514,6 +1514,92 @@ fi
 
 rm ../mp_test/file1
 
+
+################################################################################################
+### TEST 22 - mkdir && rmdir - make && remove directories ###############
+################################################################################################
+
+echo "################################################################################################
+### TEST 22 - mkdir && rmdir - make && remove directories ###############
+################################################################################################"
+
+
+
+
+mkdir numbers
+
+dbfile=$(cat db)
+expected=$(echo $dbfile)
+
+numbers_size=$(stat --format=%s "numbers")
+numbers_user=$(stat -c '%u' "numbers")
+actual="${numbers_user} ${numbers_size} 4100"
+
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "TEST mkdir SUCCEEDED"
+else
+    echo "TEST mkdir FAILED"
+    echo "expected: "
+    echo $expected
+    echo "actual: "
+    echo $actual
+fi
+
+
+
+
+# echo "After rmdir, dbfile："
+
+# <<'COMMENT'
+rmdir numbers
+
+dbfile="$(cat db)"
+expected_arr=($dbfile)
+expected_size=${expected_arr[1]}
+
+if [[ "$expected_size" == 0 ]]
+then 
+    echo "TEST rmdir SUCCEEDED"
+else
+    echo "TEST rmdir FAILED"
+    echo $dbfile
+fi
+# COMMENT
+
+
+################################################################################################
+### TEST 23 - mknod - create a special or ordinary file ###############
+################################################################################################
+
+echo ""
+echo "################################################################################################
+### TEST 23 - mknod - create a special or ordinary file ###############
+################################################################################################"
+
+sudo mknod /dev/ttyUSB32  c 188 32
+
+actual=$(ls -al "/dev/ttyUSB32")
+actual_arr=($actual)
+dev1=$(echo ${actual_arr[4]} | tr -d ",")
+dev2=$(echo ${actual_arr[5]})
+dev="${dev1} ${dev2}"
+
+if [[ "$dev" == "188 32" ]] 
+then
+    echo "TEST mknod SUCCEEDED"
+else
+    echo "TEST mknod FAILED"
+    echo "$actual"
+    echo "dev: "
+    echo "$dev"
+fi
+
+
+
+
+
 # ------------------- TESTS END HERE ------------------------
 
 
