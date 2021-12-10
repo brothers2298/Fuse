@@ -454,6 +454,7 @@ ntapfuse_chmod (const char *path, mode_t mode)
 int
 ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
 {
+  
   // Get lockfile for atomic access
   int lfd = 0; // Lock file descriptor
   // Will return -1 on failure, otherwise continue
@@ -469,6 +470,11 @@ ntapfuse_chown (const char *path, uid_t uid, gid_t gid)
 
   uid_t old_user = file_stat.st_uid;
   uid_t new_user = uid;
+
+  if (old_user == new_user) {
+    return_lockfile(&lfd);
+    return chown (fpath, uid, gid) ? -errno : 0;
+  }
 
   int up_out_new = db_update(new_user, file_stat.st_size);
   if (up_out_new != 0) {
