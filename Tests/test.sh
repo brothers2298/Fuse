@@ -1398,7 +1398,7 @@ echo "ACTUAL:   ${actual}"
 
 if [[ "$expected" == "$actual" ]] 
 then
-    echo "TEST 18 PASSED"
+    echo "TEST 18 SUCCEEDED"
 else
     echo "TEST 18 FAILED"
 fi
@@ -1499,7 +1499,7 @@ echo "ACTUAL:   ${actual}"
 
 if [[ "$expected" == "$actual" ]] 
 then
-    echo "TEST 19 PASSED"
+    echo "TEST 19 SUCCEEDED"
 else
     echo "TEST 19 FAILED"
 fi
