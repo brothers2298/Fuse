@@ -1206,6 +1206,312 @@ else
     echo "TEST 15 FAILED"
 fi
 
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 16 - MKDIR && RMDIR - MAKE AND REMOVE DIRECTORIES ##############
+#########################################################################
+
+echo "
+#########################################################################
+### TEST 16 - MKDIR && RMDIR - MAKE AND REMOVE DIRECTORIES ##############
+#########################################################################"
+
+mkdir numbers
+
+dbfile="$(cat db)"
+expected=$(echo $dbfile)
+
+numbers_size=$(stat --format=%s "numbers")
+numbers_user=$(stat -c '%u' "numbers")
+actual="${numbers_user} ${numbers_size} 4100"
+
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "TEST 16 MKDIR SUCCEEDED"
+else
+    echo "TEST 16 MKDIR FAILED"
+    echo "expected: "
+    echo $expected
+    echo "actual: "
+    echo $actual
+fi
+
+
+# echo "After rmdir, dbfile："
+
+# <<'COMMENT'
+rmdir numbers
+
+dbfile="$(cat db)"
+expected_arr=($dbfile)
+expected_size=${expected_arr[1]}
+
+if [[ "$expected_size" == 0 ]]
+then 
+    echo "TEST 16 RMDIR SUCCEEDED"
+else
+    echo "TEST 16 RMDIR FAILED"
+    echo $dbfile
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 17 - MKNOD - CREATE A SPECIEAL OR ORDINARY FILE ################
+#########################################################################
+
+echo "
+#########################################################################
+### TEST 17 - MKNOD - CREATE A SPECIEAL OR ORDINARY FILE ################
+#########################################################################"
+
+sudo mknod /dev/ttyUSB32  c 188 32
+
+actual=$(ls -al "/dev/ttyUSB32")
+actual_arr=($actual)
+dev1=$(echo ${actual_arr[4]} | tr -d ",")
+dev2=$(echo ${actual_arr[5]})
+dev="${dev1} ${dev2}"
+
+if [[ "$dev" == "188 32" ]] 
+then
+    echo "TEST 17 MKNOD SUCCEEDED"
+else
+    echo "TEST 17 MKNOD FAILED"
+    echo "$actual"
+    echo "dev: "
+    echo "$dev"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 18 - CHOWN - MULT USER CHOWN TO MAX SIZE #######################
+#########################################################################
+
+echo "
+#########################################################################
+### TEST 18 - CHOWN - MULT USER CHOWN TO MAX SIZE #######################
+#########################################################################"
+
+####################### CREATE A FOLDER AS CURRENT USER TO GET CLOSE TO QUOTA ############################
+mkdir folder
+
+#Traverse back to the testscripts file
+cd ..
+cd Tests
+
+#################################################### CREATE SECOND FILE ######################################################
+
+#Make the script to be executed by the testuser executable
+chmod +x tu_18_a.sh
+
+#Make testuser execute script for this test.
+sudo -u testuser ./tu_18_a.sh
+
+#Traverse back to the mountpoint
+cd ..
+cd mp_test
+
+folder_size=$(stat --format=%s "folder")
+folder_user=$(stat -c '%u' "folder")
+folder_line="${folder_user} ${folder_size} 4100"
+
+hey_size=$(stat --format=%s "hey")
+hey_user=$(stat -c '%u' "hey")
+hey_line="${hey_user} ${hey_size} 4100"
+
+test_str="${folder_line} ${hey_line}"
+dbfile="$(cat db)"
+
+expected=$(echo $test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    :
+else
+    echo "TEST 18 MULT-USER FILE CREATION FAILED"
+    echo "expected: "
+    echo $expected
+    echo "actual: "
+    echo $actual
+fi
+
+#Traverse back to the testscripts file
+cd ..
+cd Tests
+
+#Make the script to be executed by the testuser executable
+chmod +x tu_18_b.sh
+
+#Make testuser execute script for this test.
+sudo -u testuser ./tu_18_b.sh
+
+cd ..
+cd mp_test
+
+folder_size=$(stat --format=%s "folder")
+folder_line="${folder_user} ${folder_size} 4100"
+
+hey_size=$(stat --format=%s "hey")
+hey_line="${hey_user} ${hey_size} 4100"
+
+updated_size=$(($hey_size + $folder_size))
+line_1="${folder_user} ${updated_size} 4100"
+line_2="${hey_user} 0 4100"
+
+test_str="${line_1} ${line_2}"
+dbfile="$(cat db)"
+
+expected=$(echo $test_str)
+actual=$(echo $dbfile)
+
+echo "EXPECTED: ${expected}"
+echo "ACTUAL:   ${actual}"
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "TEST 18 PASSED"
+else
+    echo "TEST 18 FAILED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
+echo ""
+
+#########################################################################
+### TEST 19 - CHOWN - MULT USER CHOWN OVER QUOTA #######################
+#########################################################################
+
+echo "
+#########################################################################
+### TEST 19 - CHOWN - MULT USER CHOWN OVER QUOTA ########################
+#########################################################################"
+
+####################### CREATE A FOLDER AS CURRENT USER TO GET CLOSE TO QUOTA ############################
+mkdir folder
+
+#Traverse back to the testscripts file
+cd ..
+cd Tests
+
+#################################################### CREATE SECOND FILE ######################################################
+
+#Make the script to be executed by the testuser executable
+chmod +x tu_19_a.sh
+
+#Make testuser execute script for this test.
+sudo -u testuser ./tu_19_a.sh
+
+#Traverse back to the mountpoint
+cd ..
+cd mp_test
+
+folder_size=$(stat --format=%s "folder")
+folder_user=$(stat -c '%u' "folder")
+folder_line="${folder_user} ${folder_size} 4100"
+
+help_size=$(stat --format=%s "help")
+help_user=$(stat -c '%u' "help")
+help_line="${help_user} ${help_size} 4100"
+
+test_str="${folder_line} ${help_line}"
+dbfile="$(cat db)"
+
+expected=$(echo $test_str)
+actual=$(echo $dbfile)
+
+if [[ "$expected" == "$actual" ]] 
+then
+    :
+else
+    echo "TEST 19 MULT-USER FILE CREATION FAILED"
+    echo "expected: "
+    echo $expected
+    echo "actual: "
+    echo $actual
+fi
+
+#Traverse back to the testscripts file
+cd ..
+cd Tests
+
+#Make the script to be executed by the testuser executable
+chmod +x tu_19_b.sh
+
+#Make testuser execute script for this test.
+sudo -u testuser ./tu_19_b.sh
+
+cd ..
+cd mp_test
+
+folder_size=$(stat --format=%s "folder")
+folder_line="${folder_user} ${folder_size} 4100"
+
+help_size=$(stat --format=%s "help")
+help_line="${help_user} ${help_size} 4100"
+
+line_1="${folder_line}"
+line_2="${help_line}"
+
+test_str="${line_1} ${line_2}"
+dbfile="$(cat db)"
+
+expected=$(echo $test_str)
+actual=$(echo $dbfile)
+
+echo "EXPECTED: ${expected}"
+echo "ACTUAL:   ${actual}"
+
+if [[ "$expected" == "$actual" ]] 
+then
+    echo "TEST 19 PASSED"
+else
+    echo "TEST 19 FAILED"
+fi
+
+cd ..
+sleep .5
+sudo umount mp_test/
+rm -rf bd_test/ mp_test/
+mkdir bd_test/
+mkdir mp_test/
+sudo ntapfuse mount bd_test/ mp_test/ -o allow_other
+cd mp_test
 
 # ------------------- CONCURRENCY TESTS------------------------
 
@@ -1223,12 +1529,12 @@ echo ""
 
 
 #########################################################################
-### TEST 16 - CREATE FILE USING ECHO - NO DATABSE PRESENT ################
+### TEST 20 - CREATE FILE USING ECHO - NO DATABSE PRESENT ################
 #########################################################################
 
 echo ""
 echo "########################################################################
-### TEST 16 - ONE USER WRITING TO TWO DIFFERENT FILES AT SAME TIME #####
+### TEST 20 - ONE USER WRITING TO TWO DIFFERENT FILES AT SAME TIME #####
 ########################################################################"
 
 #echo "1:    Creating numbers file"
@@ -1280,12 +1586,12 @@ fi
 
 
 #########################################################################
-### TEST 17 - ONE USER CONCURRENTLY REMOVING TWO FILES ##################
+### TEST 21 - ONE USER CONCURRENTLY REMOVING TWO FILES ##################
 #########################################################################
 
 echo ""
 echo "########################################################################
-### TEST 17 - ONE USER CONCURRENTLY REMOVING TWO FILES #################
+### TEST 21 - ONE USER CONCURRENTLY REMOVING TWO FILES #################
 ########################################################################"
 
 python3 ${repo_root}/Tests/c2.py
@@ -1323,12 +1629,12 @@ else
 fi
 
 #########################################################################
-### TEST 18 - SINGLE USER CONCURRENT CREATE AND REMOVE FILE #############
+### TEST 22 - SINGLE USER CONCURRENT CREATE AND REMOVE FILE #############
 #########################################################################
 
 echo ""
 echo "########################################################################
-### TEST 18 - SINGLE USER CONCURRENT CREATE AND REMOVE FILE #############
+### TEST 22 - SINGLE USER CONCURRENT CREATE AND REMOVE FILE ############
 ########################################################################"
 
 echo "987654321" > file2
@@ -1371,11 +1677,11 @@ rm file1
 
 
 #########################################################################
-### TEST 19 - 2 USERS CONCURRENTLY WRITING TO DIFFERENT FILES ###########
+### TEST 23 - 2 USERS CONCURRENTLY WRITING TO DIFFERENT FILES ###########
 #########################################################################
 
 echo "########################################################################
-### TEST 19 - 2 USERS CONCURRENTLY WRITING TO DIFFERENT FILES ###########
+### TEST 23 - 2 USERS CONCURRENTLY WRITING TO DIFFERENT FILES ##########
 ########################################################################"
 
 # Run first concurrency test
@@ -1422,12 +1728,12 @@ else
 fi
 
 #########################################################################
-### TEST 20 - TWO USER CONCURRENTLY REMOVING TWO FILES ##################
+### TEST 24 - TWO USER CONCURRENTLY REMOVING TWO FILES ##################
 #########################################################################
 
 echo ""
 echo "########################################################################
-### TEST 20 - TWO USER CONCURRENTLY REMOVING TWO FILES #################
+### TEST 24 - TWO USER CONCURRENTLY REMOVING TWO FILES #################
 ########################################################################"
 
 python3 ${repo_root}/Tests/c5.py
@@ -1465,12 +1771,12 @@ else
 fi
 
 #########################################################################
-### TEST 21 - MULTIPLE USER CONCURRENT CREATE AND REMOVE FILE #############
+### TEST 25 - MULTIPLE USER CONCURRENT CREATE AND REMOVE FILE #############
 #########################################################################
 
 echo ""
 echo "########################################################################
-### TEST 21 - MULTIPLE USER CONCURRENT CREATE AND REMOVE FILE #############
+### TEST 25 - MULTIPLE USER CONCURRENT CREATE AND REMOVE FILE ##########
 ########################################################################"
 
 echo "987654321" > ../mp_test/file2
@@ -1513,92 +1819,6 @@ else
 fi
 
 rm ../mp_test/file1
-
-
-################################################################################################
-### TEST 22 - mkdir && rmdir - make && remove directories ###############
-################################################################################################
-
-echo "################################################################################################
-### TEST 22 - mkdir && rmdir - make && remove directories ###############
-################################################################################################"
-
-
-
-
-mkdir numbers
-
-dbfile=$(cat db)
-expected=$(echo $dbfile)
-
-numbers_size=$(stat --format=%s "numbers")
-numbers_user=$(stat -c '%u' "numbers")
-actual="${numbers_user} ${numbers_size} 4100"
-
-
-if [[ "$expected" == "$actual" ]] 
-then
-    echo "TEST mkdir SUCCEEDED"
-else
-    echo "TEST mkdir FAILED"
-    echo "expected: "
-    echo $expected
-    echo "actual: "
-    echo $actual
-fi
-
-
-
-
-# echo "After rmdir, dbfile："
-
-# <<'COMMENT'
-rmdir numbers
-
-dbfile="$(cat db)"
-expected_arr=($dbfile)
-expected_size=${expected_arr[1]}
-
-if [[ "$expected_size" == 0 ]]
-then 
-    echo "TEST rmdir SUCCEEDED"
-else
-    echo "TEST rmdir FAILED"
-    echo $dbfile
-fi
-# COMMENT
-
-
-################################################################################################
-### TEST 23 - mknod - create a special or ordinary file ###############
-################################################################################################
-
-echo ""
-echo "################################################################################################
-### TEST 23 - mknod - create a special or ordinary file ###############
-################################################################################################"
-
-sudo mknod /dev/ttyUSB32  c 188 32
-
-actual=$(ls -al "/dev/ttyUSB32")
-actual_arr=($actual)
-dev1=$(echo ${actual_arr[4]} | tr -d ",")
-dev2=$(echo ${actual_arr[5]})
-dev="${dev1} ${dev2}"
-
-if [[ "$dev" == "188 32" ]] 
-then
-    echo "TEST mknod SUCCEEDED"
-else
-    echo "TEST mknod FAILED"
-    echo "$actual"
-    echo "dev: "
-    echo "$dev"
-fi
-
-
-
-
 
 # ------------------- TESTS END HERE ------------------------
 
