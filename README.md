@@ -1,6 +1,12 @@
-# ntapfuse
+# ntapfuse - Capstone Project
+
+My school account is arb204 - I am gathering projects from my school account and putting them here.
+
+This was a project that I worked on with 3 colleagues to add multiple user quota functionality to the filesystem.
+
 
 ntapfuse is a FUSE filesystem that mirrors a directory.
+
 
 ## Dependencies
 
